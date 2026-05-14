@@ -1,31 +1,31 @@
-# ── Étape 1 : dépendances ────────────────────────────────────
-FROM node:20-slim AS deps
+# ── Étape 1 : dépendances de production ──────────────────────
+FROM node:20-alpine AS deps
 WORKDIR /app
+RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 RUN npm ci --omit=dev
 
 # ── Étape 2 : build TypeScript ───────────────────────────────
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN chmod +x node_modules/.bin/prisma && node_modules/.bin/prisma generate
-RUN npm run build
+RUN npx prisma generate
+RUN npx tsc
 
-# ── Étape 3 : image finale (légère) ─────────────────────────
-FROM node:20-slim AS runner
+# ── Étape 3 : image finale ────────────────────────────────────
+FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-
-# OpenSSL requis par Prisma
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl libc6-compat
 
 COPY --from=deps    /app/node_modules ./node_modules
 COPY --from=builder /app/dist         ./dist
 COPY --from=builder /app/prisma       ./prisma
+COPY package*.json ./
 
 EXPOSE 3003
 
-# Applique les migrations puis démarre le serveur
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]

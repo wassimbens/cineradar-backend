@@ -11,9 +11,10 @@ WORKDIR /app
 RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 RUN npm ci
+RUN chmod -R 755 node_modules/.bin/
 COPY . .
-RUN npx prisma generate
-RUN npx tsc
+RUN node_modules/.bin/prisma generate
+RUN node_modules/.bin/tsc
 
 # ── Étape 3 : image finale ────────────────────────────────────
 FROM node:20-alpine AS runner

@@ -1,0 +1,24 @@
+🔍 Test découverte AlloCiné (natio 5700-5900)…
+
+
+📋 Test pages département…
+  dept-75 → HTTP 429
+  dept-69 → HTTP 429
+  dept-13 → HTTP 429
+  dept-33 → HTTP 429
+  dept-31 → HTTP 429
+  dept-59 → HTTP 429
+  dept-67 → HTTP 429
+  dept-34 → HTTP 429
+  dept-06 → HTTP 429
+  dept-44 → HTTP 429
+  dept-35 → HTTP 429
+  dept-76 → HTTP 429
+  dept-38 → HTTP 429
+  dept-57 → HTTP 429
+  dept-62 → HTTP 429
+  dept-83 → HTTP 429
+  dept-2A → HTTP 429
+
+✅ Résultat final : 0 cinémas découverts
+📊 Pages natio vérifiées : 201, avec résultats : 0

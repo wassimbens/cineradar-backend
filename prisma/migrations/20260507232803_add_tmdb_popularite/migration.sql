@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Film" ADD COLUMN     "tmdbPopularite" DOUBLE PRECISION NOT NULL DEFAULT 0;

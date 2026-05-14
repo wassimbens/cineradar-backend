@@ -1,0 +1,292 @@
+
+> cineradar-backend@1.0.0 scrape:pathe
+> tsx src/scripts/run-scraper.ts pathe
+
+
+🚀 Lancement de 1 scraper(s)…
+
+
+📡 PATHE — démarrage
+00:48:09 [PATHE] 🎪 27 cinémas Pathé à scraper (fenêtre 30 jours)
+00:48:10 [PATHE] 
+▶ Pathé Wepler (pathe-wepler)
+00:48:12 [PATHE]     📡 HTTP fetch pour pathe-wepler…
+00:48:12 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:48:12 [PATHE]     🤖 Playwright (fallback) pour pathe-wepler…
+00:48:18 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:48:18 [PATHE] 
+▶ Pathé Beaugrenelle (pathe-beaugrenelle)
+00:48:20 [PATHE]     📡 HTTP fetch pour pathe-beaugrenelle…
+00:48:20 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:48:20 [PATHE]     🤖 Playwright (fallback) pour pathe-beaugrenelle…
+00:48:24 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:48:24 [PATHE] 
+▶ Pathé Convention (pathe-convention)
+00:48:26 [PATHE]     📡 HTTP fetch pour pathe-convention…
+00:48:26 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:48:26 [PATHE]     🤖 Playwright (fallback) pour pathe-convention…
+00:48:30 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:48:30 [PATHE] 
+▶ Pathé Opéra Premier (pathe-opera-premier)
+00:48:32 [PATHE]     📡 HTTP fetch pour pathe-opera-premier…
+00:48:33 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:48:33 [PATHE]     🤖 Playwright (fallback) pour pathe-opera-premier…
+00:48:36 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:48:36 [PATHE] 
+▶ Pathé Les Fauvettes (pathe-les-fauvettes)
+00:48:38 [PATHE]     📡 HTTP fetch pour pathe-les-fauvettes…
+00:48:39 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:48:39 [PATHE]     🤖 Playwright (fallback) pour pathe-les-fauvettes…
+00:48:42 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:48:42 [PATHE] 
+▶ Pathé Montparnos (pathe-montparnos)
+00:48:44 [PATHE]     📡 HTTP fetch pour pathe-montparnos…
+00:48:44 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:48:44 [PATHE]     🤖 Playwright (fallback) pour pathe-montparnos…
+00:48:49 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:48:49 [PATHE] 
+▶ Pathé La Villette (pathe-la-villette)
+00:48:51 [PATHE]     📡 HTTP fetch pour pathe-la-villette…
+00:48:51 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:48:51 [PATHE]     🤖 Playwright (fallback) pour pathe-la-villette…
+00:48:55 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:48:55 [PATHE] 
+▶ Pathé Gaumont Disney Village (pathe-gaumont-disney)
+00:48:57 [PATHE]     📡 HTTP fetch pour pathe-gaumont-disney…
+00:48:57 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:48:57 [PATHE]     🤖 Playwright (fallback) pour pathe-gaumont-disney…
+00:49:01 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:01 [PATHE] 
+▶ Pathé Massy (pathe-massy)
+00:49:04 [PATHE]     📡 HTTP fetch pour pathe-massy…
+00:49:04 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:04 [PATHE]     🤖 Playwright (fallback) pour pathe-massy…
+00:49:07 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:07 [PATHE] 
+▶ Pathé Versailles (pathe-versailles)
+00:49:10 [PATHE]     📡 HTTP fetch pour pathe-versailles…
+00:49:10 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:10 [PATHE]     🤖 Playwright (fallback) pour pathe-versailles…
+00:49:13 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:13 [PATHE] 
+▶ Pathé Les Grésilles (pathe-les-grésilles)
+00:49:16 [PATHE]     📡 HTTP fetch pour pathe-les-grésilles…
+00:49:16 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:16 [PATHE]     🤖 Playwright (fallback) pour pathe-les-grésilles…
+00:49:19 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:19 [PATHE] 
+▶ Pathé Carré de Soie (pathe-carré-de-soie)
+00:49:21 [PATHE]     📡 HTTP fetch pour pathe-carré-de-soie…
+00:49:21 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:21 [PATHE]     🤖 Playwright (fallback) pour pathe-carré-de-soie…
+00:49:24 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:24 [PATHE] 
+▶ Pathé Bellecour (pathe-bellecour)
+00:49:27 [PATHE]     📡 HTTP fetch pour pathe-bellecour…
+00:49:27 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:27 [PATHE]     🤖 Playwright (fallback) pour pathe-bellecour…
+00:49:30 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:30 [PATHE] 
+▶ Pathé Vaise (pathe-vaise)
+00:49:33 [PATHE]     📡 HTTP fetch pour pathe-vaise…
+00:49:33 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:33 [PATHE]     🤖 Playwright (fallback) pour pathe-vaise…
+00:49:36 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:36 [PATHE] 
+▶ Pathé Chavant (pathe-chavant)
+00:49:38 [PATHE]     📡 HTTP fetch pour pathe-chavant…
+00:49:38 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:38 [PATHE]     🤖 Playwright (fallback) pour pathe-chavant…
+00:49:42 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:42 [PATHE] 
+▶ Pathé Plan de Campagne (pathe-marseille-plan-de-campagne)
+00:49:44 [PATHE]     📡 HTTP fetch pour pathe-marseille-plan-de-campagne…
+00:49:44 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:44 [PATHE]     🤖 Playwright (fallback) pour pathe-marseille-plan-de-campagne…
+00:49:48 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:48 [PATHE] 
+▶ Pathé Toulon (pathe-toulon)
+00:49:50 [PATHE]     📡 HTTP fetch pour pathe-toulon…
+00:49:50 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:50 [PATHE]     🤖 Playwright (fallback) pour pathe-toulon…
+00:49:53 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:53 [PATHE] 
+▶ Pathé Nice Gare (pathe-nice-gare)
+00:49:55 [PATHE]     📡 HTTP fetch pour pathe-nice-gare…
+00:49:56 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:49:56 [PATHE]     🤖 Playwright (fallback) pour pathe-nice-gare…
+00:49:59 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:49:59 [PATHE] 
+▶ Pathé Lingostière (pathe-lingostiere)
+00:50:01 [PATHE]     📡 HTTP fetch pour pathe-lingostiere…
+00:50:01 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:50:01 [PATHE]     🤖 Playwright (fallback) pour pathe-lingostiere…
+00:50:05 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:50:05 [PATHE] 
+▶ Pathé Nantes Atlantis (pathe-nantes)
+00:50:07 [PATHE]     📡 HTTP fetch pour pathe-nantes…
+00:50:07 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:50:07 [PATHE]     🤖 Playwright (fallback) pour pathe-nantes…
+00:50:11 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:50:11 [PATHE] 
+▶ Pathé Bordeaux (pathe-bordeaux)
+00:50:13 [PATHE]     📡 HTTP fetch pour pathe-bordeaux…
+00:50:13 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:50:13 [PATHE]     🤖 Playwright (fallback) pour pathe-bordeaux…
+00:50:16 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:50:16 [PATHE] 
+▶ Pathé Labège (pathe-labège)
+00:50:19 [PATHE]     📡 HTTP fetch pour pathe-labège…
+00:50:19 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:50:19 [PATHE]     🤖 Playwright (fallback) pour pathe-labège…
+00:50:22 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:50:22 [PATHE] 
+▶ Pathé Strasbourg Étoile (pathe-strasbourg-étoile)
+00:50:25 [PATHE]     📡 HTTP fetch pour pathe-strasbourg-étoile…
+00:50:25 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:50:25 [PATHE]     🤖 Playwright (fallback) pour pathe-strasbourg-étoile…
+00:50:28 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:50:28 [PATHE] 
+▶ Pathé Rennes (pathe-rennes)
+00:50:30 [PATHE]     📡 HTTP fetch pour pathe-rennes…
+00:50:30 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:50:30 [PATHE]     🤖 Playwright (fallback) pour pathe-rennes…
+00:50:34 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:50:34 [PATHE] 
+▶ Pathé Gaumont Lille (pathe-gaumont-lille)
+00:50:37 [PATHE]     📡 HTTP fetch pour pathe-gaumont-lille…
+00:50:37 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:50:37 [PATHE]     🤖 Playwright (fallback) pour pathe-gaumont-lille…
+00:50:40 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:50:40 [PATHE] 
+▶ Pathé Montpellier (pathe-montpellier)
+00:50:42 [PATHE]     📡 HTTP fetch pour pathe-montpellier…
+00:50:43 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:50:43 [PATHE]     🤖 Playwright (fallback) pour pathe-montpellier…
+00:50:46 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:50:46 [PATHE] 
+▶ Pathé Clermont-Ferrand (pathe-clermont-ferrand)
+00:50:48 [PATHE]     📡 HTTP fetch pour pathe-clermont-ferrand…
+00:50:48 [PATHE]     ⚠️ __NEXT_DATA__ non trouvé, passage en Playwright…
+00:50:48 [PATHE]     🤖 Playwright (fallback) pour pathe-clermont-ferrand…
+00:50:51 [PATHE]   → 0 films, 0 séances sur 30 jours
+00:50:52 [PATHE] 
+✅ Pathé terminé — 27 cinémas, 0 séances
+
+💾 Sauvegarde en base…
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query INSERT INTO "public"."Cinema" ("id","nom","adresse","ville","codePostal","latitude","longitude","siteWeb","chaine","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query INSERT INTO "public"."Cinema" ("id","nom","adresse","ville","codePostal","latitude","longitude","siteWeb","chaine","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."Cinema" SET "adresse" = $1, "codePostal" = $2, "latitude" = $3, "longitude" = $4, "siteWeb" = $5, "updatedAt" = $6 WHERE ("public"."Cinema"."id" = $7 AND 1=1) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query INSERT INTO "public"."Cinema" ("id","nom","adresse","ville","codePostal","latitude","longitude","siteWeb","chaine","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query INSERT INTO "public"."Cinema" ("id","nom","adresse","ville","codePostal","latitude","longitude","siteWeb","chaine","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query INSERT INTO "public"."Cinema" ("id","nom","adresse","ville","codePostal","latitude","longitude","siteWeb","chaine","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query INSERT INTO "public"."Cinema" ("id","nom","adresse","ville","codePostal","latitude","longitude","siteWeb","chaine","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query INSERT INTO "public"."Cinema" ("id","nom","adresse","ville","codePostal","latitude","longitude","siteWeb","chaine","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+prisma:query SELECT "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt" FROM "public"."Cinema" WHERE ("public"."Cinema"."nom" ILIKE $1 AND "public"."Cinema"."ville" ILIKE $2) LIMIT $3 OFFSET $4
+prisma:query INSERT INTO "public"."Cinema" ("id","nom","adresse","ville","codePostal","latitude","longitude","siteWeb","chaine","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "public"."Cinema"."id", "public"."Cinema"."nom", "public"."Cinema"."adresse", "public"."Cinema"."ville", "public"."Cinema"."codePostal", "public"."Cinema"."latitude", "public"."Cinema"."longitude", "public"."Cinema"."siteWeb", "public"."Cinema"."telephone", "public"."Cinema"."chaine", "public"."Cinema"."createdAt", "public"."Cinema"."updatedAt"
+
+✅ PATHE terminé en 162.3s
+   Cinémas  : 27 scrapés (8 créés, 19 màj)
+   Films    : 0 trouvés (0 créés, 0 màj)
+   Séances  : 0 trouvées (0 créées, 0 màj)
+   Erreurs  : 0
+      
+prisma:query DELETE FROM "public"."Seance" WHERE "public"."Seance"."dateHeure" < $1
+
+🖼️  Enrichissement automatique des affiches…
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+🎬 Enrichissement des affiches…
+   Mode : affiches manquantes + URLs non-TMDB
+
+📋 15 film(s) à traiter
+
+  🔍 "ARTUS - LE SHOW XXL AU CINEMA" (?)… ❌ introuvable
+  🔍 "ATEEZ VR CONCERT : LIGHT THE WAY" (?)… ❌ introuvable
+  🔍 "Coup de coeur surprise 2 AFCAE Mai 2026" (?)… ❌ introuvable
+  🔍 "FESTIVAL DU FILM DE RANDO HISTOIRES  CRAPAHUTES - SAISON 3" (?)… ❌ introuvable
+  🔍 "HAMLET (COMEDIE-FRANCAISE)" (?)… ❌ introuvable
+  🔍 "JOHNNY HALLYDAY LORADA TOUR - BERCY 1995" (?)… ❌ introuvable
+  🔍 "KARA - TAMOUL" (?)… ❌ introuvable
+  🔍 "L’Occupation de l’an 2000" (?)… ❌ introuvable
+  🔍 "LA FLÛTE ENCHANTÉE (THE ROYAL OPERA)" (?)… ❌ introuvable
+  🔍 "LA NUIT DE LA GÉOPOLITIQUE 2026" (?)… ❌ introuvable
+  🔍 "Mae Hasan Fi Ghzz" (?)… ❌ introuvable
+  🔍 "PAUL MIRABEL - PAR AMOUR : LE SPECTACLE AU CINEMA" (?)… ❌ introuvable
+  🔍 "Peppa au cinéma : La famille s’agrandit !" (?)… ❌ introuvable
+  🔍 "SANTA - LE CONCERT AU CINEMA" (?)… ❌ introuvable
+  🔍 "Un peu d'imagination" (?)… ❌ introuvable
+
+📊 Résultat :
+   ✅  0 affiches mises à jour
+   ℹ️  0 métadonnées enrichies (sans poster)
+   ❌  15 films introuvables
+   💥  0 erreurs
+  
+
+🔔 Vérification des alertes utilisateurs…
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+
+🔔 Vérification des alertes…
+
+📋 9 alerte(s) active(s)
+
+  🎬 "Dune" → test@test.com (Paris, 10km)… ⏭️  Aucune nouvelle séance
+  🎬 "Dune" → benslimene.wassim@gmail.com (Paris, 10km)… ⏭️  Aucune nouvelle séance
+  🎬 "Oppenheimer" → autre@test.com (Lyon, 15km)… ⏭️  Aucune nouvelle séance
+  🎬 "Mission Impossible" → ines.benslimene@hotmail.com (Paris, 10km)… ⏭️  Aucune nouvelle séance
+  🎬 "TestFilm" → test2@test.com (Paris, 10km)… ⏭️  Aucune nouvelle séance
+  🎬 "Anatomie d'une chute" → benslimene.wassim@gmail.com (Paris, 10km)… ⏭️  Aucune nouvelle séance
+  🎬 "TestEmail123" → benslimene.wassim@gmail.com (Paris, 10km)… ⏭️  Aucune nouvelle séance
+  🎬 "Past Lives" → benslimene.wassim@gmail.com (Paris, 10km)… ⏭️  Aucune nouvelle séance
+  🎬 "Oppenheimer" → benslimene.wassim@gmail.com (Paris, 15km)… ⏭️  Aucune nouvelle séance
+
+📊 Résultat :
+   ✅  0 email(s) envoyé(s)
+   ⏭️  9 alerte(s) sans nouveauté
+   💥  0 erreur(s)
+  

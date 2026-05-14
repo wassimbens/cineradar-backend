@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npx prisma generate
+RUN chmod +x node_modules/.bin/prisma && node_modules/.bin/prisma generate
 RUN npm run build
 
 # ── Étape 3 : image finale (légère) ─────────────────────────

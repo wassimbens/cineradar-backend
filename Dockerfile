@@ -11,7 +11,7 @@ WORKDIR /app
 RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 RUN npm ci
-RUN npm install -g prisma typescript
+RUN npm install -g prisma@5.22.0 typescript
 COPY . .
 RUN prisma generate
 RUN tsc

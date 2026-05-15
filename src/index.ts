@@ -39,17 +39,10 @@ const app = Fastify({
 
 async function start() {
   // Plugins
-  const allowedOrigins = process.env["NODE_ENV"] === "production"
-    ? [
-        process.env["FRONTEND_URL"],
-        "https://cineradar.fr",
-        "https://www.cineradar.fr",
-        "https://cineradar-frontend.vercel.app",
-      ].filter(Boolean)
-    : true;
-
   await app.register(cors, {
-    origin: allowedOrigins,
+    origin: process.env["NODE_ENV"] === "production"
+      ? ["https://cineradar.fr", "https://www.cineradar.fr", "https://cineradar-frontend.vercel.app"]
+      : true,
     credentials: true,
   });
 

@@ -666,6 +666,169 @@ const profilRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.send({ ok: true });
     }
   );
+
+  // ── GET /api/profil/:email/recommandations ───────────
+  // Retourne jusqu'à 20 films recommandés (Pro only)
+  // Basé sur les genres et réalisateurs des films vus
+  fastify.get<{ Params: { email: string } }>(
+    "/profil/:email/recommandations",
+    async (req, reply) => {
+      const { email } = req.params;
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          isPremium: true,
+          filmsVus: {
+            take: 200,
+            select: { filmId: true, film: { select: { genres: true, realisateur: true } } },
+          },
+          watchlist: { select: { filmId: true } },
+          filmsFavoris: { select: { filmId: true } },
+        },
+      });
+
+      if (!user) return reply.status(404).send({ error: "Utilisateur introuvable" });
+      if (!user.isPremium) return reply.status(403).send({ error: "Fonctionnalité réservée aux membres Pro" });
+
+      // Construire la liste des IDs déjà vus/watchlist/favoris
+      const seenIds = new Set<string>([
+        ...user.filmsVus.map((fv) => fv.filmId),
+        ...user.watchlist.map((w) => w.filmId),
+        ...user.filmsFavoris.map((f) => f.filmId),
+      ]);
+
+      // Calculer les genres et réalisateurs préférés (score par fréquence)
+      const genreScore = new Map<string, number>();
+      const realScore  = new Map<string, number>();
+
+      for (const fv of user.filmsVus) {
+        for (const g of fv.film.genres) {
+          genreScore.set(g, (genreScore.get(g) ?? 0) + 1);
+        }
+        if (fv.film.realisateur) {
+          realScore.set(fv.film.realisateur, (realScore.get(fv.film.realisateur) ?? 0) + 1);
+        }
+      }
+
+      const topGenres = [...genreScore.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([g]) => g);
+      const topReals  = [...realScore.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([r]) => r);
+
+      if (topGenres.length === 0 && topReals.length === 0) {
+        return reply.send([]);
+      }
+
+      // Requête films candidats : match genre ou réalisateur, non vus
+      const candidats = await prisma.film.findMany({
+        where: {
+          id: { notIn: [...seenIds] },
+          OR: [
+            ...(topGenres.length > 0 ? [{ genres: { hasSome: topGenres } }] : []),
+            ...(topReals.length > 0  ? [{ realisateur: { in: topReals } }] : []),
+          ],
+        },
+        select: {
+          id: true, titre: true, titreOriginal: true,
+          affiche: true, annee: true, realisateur: true,
+          genres: true, imdbNote: true, synopsis: true,
+        },
+        take: 200,
+      });
+
+      // Scorer chaque candidat
+      const scored = candidats.map((film) => {
+        let score = 0;
+        for (const g of film.genres) {
+          const w = genreScore.get(g) ?? 0;
+          score += w;
+        }
+        if (film.realisateur) {
+          const w = realScore.get(film.realisateur) ?? 0;
+          score += w * 3; // bonus réalisateur
+        }
+        // Bonus note IMDB
+        if (film.imdbNote && film.imdbNote >= 7) score += 2;
+        return { ...film, score };
+      });
+
+      scored.sort((a, b) => b.score - a.score || (b.imdbNote ?? 0) - (a.imdbNote ?? 0));
+
+      return reply.send(scored.slice(0, 20));
+    }
+  );
+
+  // ── GET /api/profil/:email/calendar ──────────────────
+  // Exporte les films récemment vus en .ics (Pro only)
+  fastify.get<{ Params: { email: string } }>(
+    "/profil/:email/calendar",
+    async (req, reply) => {
+      const { email } = req.params;
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          isPremium: true,
+          nom: true,
+          filmsVus: {
+            orderBy: { dateVu: "desc" },
+            take: 100,
+            select: {
+              id: true,
+              dateVu: true,
+              film: { select: { id: true, titre: true, annee: true, genres: true, synopsis: true } },
+            },
+          },
+        },
+      });
+
+      if (!user) return reply.status(404).send({ error: "Utilisateur introuvable" });
+      if (!user.isPremium) return reply.status(403).send({ error: "Fonctionnalité réservée aux membres Pro" });
+
+      const now = new Date().toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z";
+      const uid = (id: string) => `${id}@cineradar.fr`;
+
+      const toIcsDate = (d: Date) =>
+        d.toISOString().replace(/[-:.]/g, "").slice(0, 8);
+
+      const escape = (s: string) =>
+        s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+
+      const events = user.filmsVus.map((fv) => {
+        const date = toIcsDate(fv.dateVu);
+        const title = escape(fv.film.titre);
+        const desc  = escape(fv.film.synopsis?.slice(0, 200) ?? "");
+        return [
+          "BEGIN:VEVENT",
+          `UID:${uid(fv.id)}`,
+          `DTSTAMP:${now}`,
+          `DTSTART;VALUE=DATE:${date}`,
+          `DTEND;VALUE=DATE:${date}`,
+          `SUMMARY:🎬 ${title}`,
+          desc ? `DESCRIPTION:${desc}` : null,
+          `CATEGORIES:${fv.film.genres.join(",")}`,
+          `URL:https://cineradar.fr/films/${fv.film.id}`,
+          "END:VEVENT",
+        ].filter(Boolean).join("\r\n");
+      }).join("\r\n");
+
+      const ics = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//CinéRadar//FR",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        `X-WR-CALNAME:CinéRadar — ${escape(user.nom ?? email)}`,
+        "X-WR-TIMEZONE:Europe/Paris",
+        events,
+        "END:VCALENDAR",
+      ].join("\r\n");
+
+      reply
+        .header("Content-Type", "text/calendar; charset=utf-8")
+        .header("Content-Disposition", `attachment; filename="cineradar.ics"`)
+        .send(ics);
+    }
+  );
 };
 
 export default profilRoutes;

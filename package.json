@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "tsc && prisma generate",
+    "start": "prisma db push --accept-data-loss && node dist/index.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:prod": "prisma migrate deploy",

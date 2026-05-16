@@ -325,6 +325,7 @@ model Liste {
   slug        String   @unique // URL-safe, ex: "films-2024-avec-marie"
   isPublic    Boolean  @default(true)
   emoji       String   @default("🎬")
+  coverImage  String?  // URL d'une image de couverture (optionnel)
 
   authorId String
   author   User   @relation("ListesCreees", fields: [authorId], references: [id], onDelete: Cascade)

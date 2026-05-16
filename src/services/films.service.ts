@@ -108,8 +108,9 @@ export class FilmsService {
   async searchFilms(q: string): Promise<FilmSummary[]> {
     const now = new Date();
     const term = q.trim();
+    const words = term ? term.split(/\s+/).filter(Boolean) : [];
 
-    // Recherche par acteur via requête raw (ILIKE sur tableau PostgreSQL)
+    // Recherche par acteur via requête raw (ILIKE sur tableau PostgreSQL) — terme complet
     let actorIds: string[] = [];
     if (term) {
       const rows = await prisma.$queryRaw<{ id: string }[]>`
@@ -122,16 +123,29 @@ export class FilmsService {
       actorIds = rows.map((r) => r.id);
     }
 
-    const where = term
-      ? {
+    let where: Record<string, unknown> = {};
+    if (words.length === 1) {
+      // Terme unique : recherche exacte par substring dans tous les champs
+      where = {
+        OR: [
+          { titre:         { contains: words[0], mode: "insensitive" as const } },
+          { titreOriginal: { contains: words[0], mode: "insensitive" as const } },
+          { realisateur:   { contains: words[0], mode: "insensitive" as const } },
+          ...(actorIds.length > 0 ? [{ id: { in: actorIds } }] : []),
+        ],
+      };
+    } else if (words.length > 1) {
+      // Plusieurs mots : chaque mot doit apparaître dans le titre ou le titre original
+      // "tron ares" → trouve "Tron: Ares"
+      where = {
+        AND: words.map((word) => ({
           OR: [
-            { titre:         { contains: term, mode: "insensitive" as const } },
-            { titreOriginal: { contains: term, mode: "insensitive" as const } },
-            { realisateur:   { contains: term, mode: "insensitive" as const } },
-            ...(actorIds.length > 0 ? [{ id: { in: actorIds } }] : []),
+            { titre:         { contains: word, mode: "insensitive" as const } },
+            { titreOriginal: { contains: word, mode: "insensitive" as const } },
           ],
-        }
-      : {};
+        })),
+      };
+    }
 
     const films = await prisma.film.findMany({
       where,

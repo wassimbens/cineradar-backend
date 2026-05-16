@@ -38,6 +38,7 @@ const createListeSchema = z.object({
   description: z.string().max(500).optional(),
   isPublic:    z.boolean().default(true),
   emoji:       z.string().max(4).default("🎬"),
+  coverImage:  z.string().url().optional().nullable(),
 });
 
 const addFilmSchema = z.object({
@@ -85,7 +86,7 @@ const listesRoutes: FastifyPluginAsync = async (fastify) => {
     const liste = await prisma.liste.findUnique({
       where: { slug },
       include: {
-        author:  { select: { id: true, pseudo: true, avatar: true } },
+        author:  { select: { id: true, pseudo: true, email: true, avatar: true } },
         membres: {
           include: { user: { select: { id: true, pseudo: true, avatar: true } } },
         },
@@ -125,7 +126,7 @@ const listesRoutes: FastifyPluginAsync = async (fastify) => {
     const parsed = createListeSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Données invalides", details: parsed.error.flatten() });
 
-    const { titre, description, isPublic, emoji } = parsed.data;
+    const { titre, description, isPublic, emoji, coverImage } = parsed.data;
 
     // Vérifier les doublons de titre pour cet utilisateur (max 50 listes)
     const count = await prisma.liste.count({ where: { authorId: user.userId } });
@@ -140,7 +141,7 @@ const listesRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const liste = await prisma.liste.create({
-      data: { titre, description, isPublic, emoji, slug, authorId: user.userId },
+      data: { titre, description, isPublic, emoji, coverImage: coverImage ?? null, slug, authorId: user.userId },
       include: { _count: { select: { films: true } } },
     });
 
@@ -270,6 +271,30 @@ const listesRoutes: FastifyPluginAsync = async (fastify) => {
 
     return membre;
   });
+
+  // ── DELETE /api/listes/:slug/membres/:userId ──────────
+  fastify.delete<{ Params: { slug: string; userId: string } }>(
+    "/listes/:slug/membres/:userId",
+    async (request, reply) => {
+      const user = extractUser(request);
+      if (!user) return reply.code(401).send({ error: "Non authentifié" });
+
+      const liste = await prisma.liste.findUnique({ where: { slug: request.params.slug } });
+      if (!liste) return reply.code(404).send({ error: "Liste introuvable" });
+
+      // Seul l'auteur peut retirer un membre (ou l'utilisateur lui-même)
+      const isSelf = request.params.userId === user.userId;
+      if (!isSelf && liste.authorId !== user.userId) {
+        return reply.code(403).send({ error: "Accès refusé" });
+      }
+
+      await prisma.listeMembre.deleteMany({
+        where: { listeId: liste.id, userId: request.params.userId },
+      });
+
+      return { ok: true };
+    }
+  );
 
 };
 

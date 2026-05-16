@@ -29,6 +29,7 @@ COPY --from=deps    /app/node_modules ./node_modules
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/dist         ./dist
 COPY --from=builder /app/prisma       ./prisma
+COPY --from=builder /app/start.cjs    ./start.cjs
 COPY package*.json ./
 
 # Télécharge Chromium + toutes ses dépendances système pour Playwright
@@ -36,4 +37,4 @@ RUN npx playwright install chromium --with-deps
 
 EXPOSE 3003
 
-CMD ["sh", "-c", "node_modules/.bin/prisma db push && node dist/index.js"]
+CMD ["node", "start.cjs"]

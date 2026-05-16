@@ -172,32 +172,32 @@ export class ScraperService {
       }
     }
 
-    // ── Passe 3 : (réalisateur + année) + sous-ensemble de mots-clés ──
+    // ── Passe 3 : réalisateur + sous-ensemble de mots-clés ──
     // Gère les titres alternatifs d'un même film :
-    //   "Le Parrain 2" (1974, Coppola) ↔ "Le Parrain – Deuxième Partie" (1974, Coppola)
-    if (!existing && scrapedFilm.annee && scrapedFilm.realisateur) {
-      const sameContext = await prisma.film.findMany({
+    //   "Le Parrain 2" (Coppola) ↔ "Le Parrain – Deuxième Partie" (Coppola)
+    // Nécessite au moins un mot-clé significatif commun ET même réalisateur.
+    if (!existing && scrapedFilm.realisateur) {
+      const sameDirector = await prisma.film.findMany({
         where: {
-          annee: scrapedFilm.annee,
           realisateur: { equals: scrapedFilm.realisateur, mode: "insensitive" },
         },
       });
 
-      if (sameContext.length > 0) {
+      if (sameDirector.length > 0) {
         const normScraped = normalizeTitle(scrapedFilm.titre);
         const wordsScraped = normScraped
           .split(" ")
           .filter(w => w.length >= 3 && !STOP_WORDS.has(w));
         const setScraped = new Set(wordsScraped);
 
-        for (const candidate of sameContext) {
+        for (const candidate of sameDirector) {
           const normCandidate = normalizeTitle(candidate.titre);
           const wordsCandidate = normCandidate
             .split(" ")
             .filter(w => w.length >= 3 && !STOP_WORDS.has(w));
           const setCandidate = new Set(wordsCandidate);
 
-          // Sous-ensemble : si tous les mots-clés de A se retrouvent dans B → même film (variante de titre)
+          // Sous-ensemble : tous les mots-clés de A dans B (ou vice versa) → variante de titre
           const scrapedSubset =
             setScraped.size > 0 &&
             [...setScraped].every(w => setCandidate.has(w));
@@ -207,7 +207,7 @@ export class ScraperService {
 
           if (scrapedSubset || candidateSubset) {
             console.log(
-              `[scraper] Passe 3 : "${scrapedFilm.titre}" → "${candidate.titre}" (${scrapedFilm.annee}, ${scrapedFilm.realisateur})`
+              `[scraper] Passe 3 : "${scrapedFilm.titre}" → "${candidate.titre}" (${scrapedFilm.realisateur})`
             );
             existing = candidate;
             break;

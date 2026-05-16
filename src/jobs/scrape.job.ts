@@ -141,15 +141,15 @@ export async function runAllScrapers(): Promise<void> {
 /** Lance auto-fix-posters puis check-alertes en sous-processus (non bloquant) */
 function runPostScrapeJobs(): void {
   const scripts = [
-    "src/scripts/auto-fix-posters.ts",
-    "src/scripts/check-alertes.ts",
+    "dist/scripts/auto-fix-posters.js",
+    "dist/scripts/check-alertes.js",
   ];
 
   for (const script of scripts) {
     const label = script.split("/").pop();
     console.log(`\n⚙️  Post-scrape : lancement de ${label}…`);
 
-    const child = spawn("npx", ["tsx", script], {
+    const child = spawn("node", [script], {
       cwd: process.cwd(),
       shell: true,
       stdio: "inherit",

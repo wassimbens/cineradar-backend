@@ -115,7 +115,7 @@ async function start() {
       const startedAt = new Date().toISOString();
       console.log(`[CRON 03:00] Démarrage du scraping nocturne — ${startedAt}`);
 
-      const child = spawn("npm", ["run", "scrape"], {
+      const child = spawn("node", ["dist/scripts/run-scraper.js"], {
         cwd: process.cwd(),
         shell: true,
         stdio: "inherit",

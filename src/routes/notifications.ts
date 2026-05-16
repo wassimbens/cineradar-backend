@@ -20,6 +20,16 @@ const prisma = new PrismaClient();
 
 const notifRoutes: FastifyPluginAsync = async (fastify) => {
 
+  // ── GET /api/notifications/unread-count ──────────────
+  fastify.get("/notifications/unread-count", async (req, reply) => {
+    const auth = extractUser(req);
+    if (!auth) return reply.send({ count: 0 });
+    const count = await prisma.notification.count({
+      where: { userId: auth.userId, lu: false },
+    });
+    return reply.send({ count });
+  });
+
   // ── GET /api/notifications ────────────────────────────
   fastify.get("/notifications", async (req, reply) => {
     const auth = extractUser(req);

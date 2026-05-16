@@ -39,6 +39,7 @@ const createListeSchema = z.object({
   isPublic:    z.boolean().default(true),
   emoji:       z.string().max(4).default("🎬"),
   coverImage:  z.string().max(2_000_000).optional().nullable(),
+  thumbnail:   z.string().max(2_000_000).optional().nullable(),
 });
 
 const addFilmSchema = z.object({
@@ -126,7 +127,7 @@ const listesRoutes: FastifyPluginAsync = async (fastify) => {
     const parsed = createListeSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: "Données invalides", details: parsed.error.flatten() });
 
-    const { titre, description, isPublic, emoji, coverImage } = parsed.data;
+    const { titre, description, isPublic, emoji, coverImage, thumbnail } = parsed.data;
 
     // Vérifier les doublons de titre pour cet utilisateur (max 50 listes)
     const count = await prisma.liste.count({ where: { authorId: user.userId } });
@@ -141,7 +142,7 @@ const listesRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const liste = await prisma.liste.create({
-      data: { titre, description, isPublic, emoji, coverImage: coverImage ?? null, slug, authorId: user.userId },
+      data: { titre, description, isPublic, emoji, coverImage: coverImage ?? null, thumbnail: thumbnail ?? null, slug, authorId: user.userId },
       include: { _count: { select: { films: true } } },
     });
 

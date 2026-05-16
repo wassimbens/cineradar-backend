@@ -326,6 +326,7 @@ model Liste {
   isPublic    Boolean  @default(true)
   emoji       String   @default("🎬")
   coverImage  String?  // URL d'une image de couverture (optionnel)
+  thumbnail   String?  // Photo ronde remplaçant l'emoji (optionnel)
 
   authorId String
   author   User   @relation("ListesCreees", fields: [authorId], references: [id], onDelete: Cascade)

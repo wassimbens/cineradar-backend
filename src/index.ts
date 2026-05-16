@@ -19,7 +19,7 @@ import statsRoutes from "./routes/stats.js";
 import profilRoutes from "./routes/profil.js";
 import authRoutes from "./routes/auth.js";
 import usersRoutes from "./routes/users.js";
-// import stripeRoutes from "./routes/stripe.js"; // ⏸ Désactivé temporairement (sera activé après URSSAF + SIRET)
+import stripeRoutes from "./routes/stripe.js";
 import notifRoutes from "./routes/notifications.js";
 import listesRoutes from "./routes/listes.js";
 
@@ -82,7 +82,7 @@ async function start() {
   await app.register(profilRoutes,  { prefix: "/api" });
   await app.register(authRoutes,    { prefix: "/api" });
   await app.register(usersRoutes,   { prefix: "/api" });
-  // await app.register(stripeRoutes,  { prefix: "/api" }); // ⏸ Désactivé temporairement
+  await app.register(stripeRoutes,  { prefix: "/api" });
   await app.register(notifRoutes,   { prefix: "/api" });
   await app.register(listesRoutes,  { prefix: "/api" });
 

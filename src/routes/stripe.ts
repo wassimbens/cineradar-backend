@@ -13,6 +13,14 @@ import { extractUser } from "../middleware/auth.js";
 
 const stripe = new Stripe(process.env["STRIPE_SECRET_KEY"] ?? "");
 
+// Stripe API 2026+ peut retourner un string ISO ou un timestamp Unix
+function parsePeriodEnd(raw: unknown): Date {
+  if (typeof raw === "number" && raw > 0) return new Date(raw * 1000);
+  if (typeof raw === "string") { const d = new Date(raw); if (!isNaN(d.getTime())) return d; }
+  // Fallback : +1 mois
+  const d = new Date(); d.setMonth(d.getMonth() + 1); return d;
+}
+
 const PRICE_MONTHLY  = process.env["STRIPE_PRICE_MONTHLY"]  ?? "";
 const PRICE_ANNUAL   = process.env["STRIPE_PRICE_ANNUAL"]   ?? "";
 const WEBHOOK_SECRET = process.env["STRIPE_WEBHOOK_SECRET"] ?? "";
@@ -137,8 +145,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
           const subscriptionId = session.subscription as string;
 
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const periodEnd = new Date((subscription as any).current_period_end * 1000);
+          const periodEnd = parsePeriodEnd((subscription as any).current_period_end);
 
           await prisma.user.updateMany({
             where: { stripeCustomerId: customerId },
@@ -156,8 +163,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
           const sub = event.data.object;
           const customerId = sub.customer as string;
           const isActive   = sub.status === "active" || sub.status === "trialing";
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const periodEnd  = new Date((sub as any).current_period_end * 1000);
+          const periodEnd  = parsePeriodEnd((sub as any).current_period_end);
 
           await prisma.user.updateMany({
             where: { stripeCustomerId: customerId },

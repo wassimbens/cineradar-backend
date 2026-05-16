@@ -38,7 +38,7 @@ const createListeSchema = z.object({
   description: z.string().max(500).optional(),
   isPublic:    z.boolean().default(true),
   emoji:       z.string().max(4).default("🎬"),
-  coverImage:  z.string().url().optional().nullable(),
+  coverImage:  z.string().max(2_000_000).optional().nullable(),
 });
 
 const addFilmSchema = z.object({

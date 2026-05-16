@@ -613,6 +613,23 @@ const profilRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
+  // ── GET /api/profils/:pseudo/poster-choices ──────────
+  // Affiches personnalisées publiques (pour afficher sur le profil public)
+  fastify.get<{ Params: { pseudo: string } }>(
+    "/profils/:pseudo/poster-choices",
+    async (req, reply) => {
+      const user = await prisma.user.findUnique({ where: { pseudo: req.params.pseudo } });
+      if (!user) return reply.send({});
+      const choices = await prisma.userPosterChoice.findMany({
+        where: { userId: user.id },
+        select: { filmId: true, posterUrl: true },
+      });
+      const map: Record<string, string> = {};
+      for (const c of choices) map[c.filmId] = c.posterUrl;
+      return reply.send(map);
+    }
+  );
+
   // ── PUT /api/profil/:email/poster-choice ─────────────
   // Sauvegarde le choix d'affiche personnalisée d'un membre Pro
   fastify.put<{

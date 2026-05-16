@@ -98,9 +98,11 @@ const notifRoutes: FastifyPluginAsync = async (fastify) => {
       where: { id: auth.userId },
       include: {
         filmsFavoris: { include: { film: { select: { id: true, titre: true, affiche: true,
-          seances: { where: { dateHeure: { gte: now } }, take: 1, select: { id: true } } } } } },
+          seances: { where: { dateHeure: { gte: now } }, orderBy: { dateHeure: "asc" }, take: 10,
+            select: { dateHeure: true, salle: { select: { cinema: { select: { nom: true, ville: true } } } } } } } } } },
         watchlist:    { include: { film: { select: { id: true, titre: true, affiche: true,
-          seances: { where: { dateHeure: { gte: now } }, take: 1, select: { id: true } } } } } },
+          seances: { where: { dateHeure: { gte: now } }, orderBy: { dateHeure: "asc" }, take: 10,
+            select: { dateHeure: true, salle: { select: { cinema: { select: { nom: true, ville: true } } } } } } } } } },
       },
     });
     if (!user) return reply.status(404).send({ error: "Utilisateur introuvable" });
@@ -125,12 +127,28 @@ const notifRoutes: FastifyPluginAsync = async (fastify) => {
       });
       if (exists) continue;
 
+      // Construire le texte cinémas + date
+      const earliestDate = film.seances[0]?.dateHeure ?? null;
+      const uniqueCinemas = [...new Map(
+        film.seances.map(s => [s.salle.cinema.nom, s.salle.cinema])
+      ).values()].slice(0, 3);
+      const cinemasStr = uniqueCinemas.map(c => `${c.nom} (${c.ville})`).join(", ");
+      const dateStr = earliestDate
+        ? new Date(earliestDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })
+        : null;
+      const sourceLabel = source === "favori" ? "vos favoris" : "votre watchlist";
+      const corps = [
+        `Un film de ${sourceLabel} est à l'affiche.`,
+        dateStr ? `Dès le ${dateStr}` : null,
+        cinemasStr ? `au ${cinemasStr}` : null,
+      ].filter(Boolean).join(" • ");
+
       await prisma.notification.create({
         data: {
           userId:   auth.userId,
           type:     "film_en_salle",
           titre:    `${film.titre} est en salle !`,
-          corps:    `Un film de ${source === "favori" ? "vos favoris" : "votre watchlist"} est actuellement à l'affiche dans les cinémas.`,
+          corps,
           lien:     `/films/${film.id}`,
           imageUrl: film.affiche ?? null,
         },

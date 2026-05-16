@@ -516,7 +516,7 @@ const profilRoutes: FastifyPluginAsync = async (fastify) => {
             type:     "follow",
             titre:    `${followerName} vous suit maintenant`,
             corps:    `Vous avez un nouvel abonné sur CinéRadar.`,
-            lien:     follower?.pseudo ? `/profils/${follower.pseudo}` : null,
+            lien:     follower?.pseudo ? `/profil/${follower.pseudo}` : null,
             imageUrl: follower?.avatar ?? null,
           },
         }).catch(() => {}); // silencieux si erreur

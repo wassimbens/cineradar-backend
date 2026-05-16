@@ -117,10 +117,39 @@ const messagesRoutes: FastifyPluginAsync = async (fastify) => {
       if (!partner) return reply.status(404).send({ error: "Utilisateur introuvable" });
       if (partner.id === me.userId) return reply.status(400).send({ error: "Impossible de se contacter soi-même" });
 
+      const sender = await prisma.user.findUnique({
+        where: { id: me.userId },
+        select: { pseudo: true, nom: true, avatar: true },
+      });
+
       const message = await prisma.message.create({
         data: { senderId: me.userId, receiverId: partner.id, content: content.trim() },
         select: { id: true, content: true, senderId: true, createdAt: true },
       });
+
+      // Notification pour le destinataire (max 1 par heure par expéditeur)
+      const senderName = sender?.pseudo ?? sender?.nom ?? "Quelqu'un";
+      const since1h = new Date(Date.now() - 60 * 60 * 1000);
+      const alreadyNotified = await prisma.notification.findFirst({
+        where: {
+          userId: partner.id,
+          type: "message",
+          lien: `/messages/${senderName}`,
+          createdAt: { gte: since1h },
+        },
+      });
+      if (!alreadyNotified) {
+        await prisma.notification.create({
+          data: {
+            userId:   partner.id,
+            type:     "message",
+            titre:    `${senderName} vous a envoyé un message`,
+            corps:    content.trim().slice(0, 100) + (content.trim().length > 100 ? "…" : ""),
+            lien:     `/messages/${senderName}`,
+            imageUrl: sender?.avatar ?? null,
+          },
+        }).catch(() => {});
+      }
 
       return reply.status(201).send(message);
     }

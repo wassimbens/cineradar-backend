@@ -36,4 +36,4 @@ RUN npx playwright install chromium --with-deps
 
 EXPOSE 3003
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma db push && node dist/index.js"]

@@ -193,22 +193,39 @@ export class FilmsService {
     const where: Record<string, unknown> = {};
 
     if (q.trim()) {
-      // Recherche par acteur (ILIKE sur tableau PostgreSQL)
-      const actorRows = await prisma.$queryRaw<{ id: string }[]>`
-        SELECT id FROM "Film"
-        WHERE EXISTS (
-          SELECT 1 FROM unnest(acteurs) AS a
-          WHERE a ILIKE ${'%' + q.trim() + '%'}
-        )
-      `;
-      const actorIds = actorRows.map((r) => r.id);
+      const term = q.trim();
+      const words = term ? term.split(/\s+/).filter(Boolean) : [];
 
-      where["OR"] = [
-        { titre: { contains: q.trim(), mode: "insensitive" } },
-        { titreOriginal: { contains: q.trim(), mode: "insensitive" } },
-        { realisateur: { contains: q.trim(), mode: "insensitive" } },
-        ...(actorIds.length > 0 ? [{ id: { in: actorIds } }] : []),
-      ];
+      // Recherche par acteur
+      let actorIds: string[] = [];
+      if (term) {
+        const rows = await prisma.$queryRaw<{ id: string }[]>`
+          SELECT id FROM "Film"
+          WHERE EXISTS (
+            SELECT 1 FROM unnest(acteurs) AS a
+            WHERE a ILIKE ${'%' + term + '%'}
+          )
+        `;
+        actorIds = rows.map((r) => r.id);
+      }
+
+      if (words.length === 1) {
+        // Un mot : recherche dans tous les champs
+        where["OR"] = [
+          { titre: { contains: words[0], mode: "insensitive" } },
+          { titreOriginal: { contains: words[0], mode: "insensitive" } },
+          { realisateur: { contains: words[0], mode: "insensitive" } },
+          ...(actorIds.length > 0 ? [{ id: { in: actorIds } }] : []),
+        ];
+      } else if (words.length > 1) {
+        // Plusieurs mots : chaque mot doit être dans titre ou titreOriginal
+        where["AND"] = words.map((word) => ({
+          OR: [
+            { titre: { contains: word, mode: "insensitive" } },
+            { titreOriginal: { contains: word, mode: "insensitive" } },
+          ],
+        }));
+      }
     }
 
     if (genre) {

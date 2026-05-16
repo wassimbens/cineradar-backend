@@ -191,6 +191,44 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
           });
           break;
         }
+
+        // ── Remboursement complet ────────────────────────
+        // Stripe ne résilie pas l'abonnement automatiquement lors d'un remboursement.
+        // On le fait manuellement ici pour éviter qu'un utilisateur reste Pro après remboursement.
+        case "charge.refunded": {
+          const charge = event.data.object as { refunded: boolean; amount: number; amount_refunded: number; customer: string | null };
+          if (!charge.refunded || charge.amount_refunded < charge.amount) break; // remboursement partiel → pas d'action
+          const customerId = charge.customer;
+          if (!customerId) break;
+
+          // Résilier l'abonnement actif côté Stripe
+          const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
+          for (const sub of subs.data) {
+            await stripe.subscriptions.cancel(sub.id).catch(() => {});
+          }
+
+          await prisma.user.updateMany({
+            where: { stripeCustomerId: customerId },
+            data: { isPremium: false, premiumUntil: null, stripeSubscriptionId: null },
+          });
+          break;
+        }
+
+        // ── Litige / chargeback ──────────────────────────
+        // L'utilisateur a contesté le paiement auprès de sa banque.
+        // On révoque immédiatement l'accès Pro pour limiter les pertes.
+        case "charge.dispute.created": {
+          const dispute = event.data.object as { charge: string };
+          const charge = await stripe.charges.retrieve(dispute.charge);
+          const customerId = typeof charge.customer === "string" ? charge.customer : null;
+          if (!customerId) break;
+
+          await prisma.user.updateMany({
+            where: { stripeCustomerId: customerId },
+            data: { isPremium: false, premiumUntil: null, stripeSubscriptionId: null },
+          });
+          break;
+        }
       }
 
       return { received: true };

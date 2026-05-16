@@ -19,6 +19,7 @@ import { chromium, Browser, BrowserContext } from "playwright";
 import * as cheerio from "cheerio";
 import { Version } from "@prisma/client";
 import { BaseScraper } from "./base.scraper.js";
+import { CHROMIUM_ARGS } from "./chromium-args.js";
 import {
   ScraperResult,
   ScrapedCinema,
@@ -286,7 +287,7 @@ export class Mk2Scraper extends BaseScraper {
   private async launchBrowser(): Promise<void> {
     this.browser = await chromium.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+      args: CHROMIUM_ARGS,
     });
     this.context = await this.browser.newContext({
       userAgent: HEADERS["User-Agent"],

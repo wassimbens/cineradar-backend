@@ -25,6 +25,7 @@
 import { chromium, BrowserContext, Page } from "playwright";
 import { Version } from "@prisma/client";
 import { BaseScraper } from "./base.scraper.js";
+import { CHROMIUM_ARGS } from "./chromium-args.js";
 import {
   ScraperResult,
   ScrapedCinema,
@@ -168,7 +169,7 @@ export class AllocineScraper extends BaseScraper {
     const result = this.makeResult();
 
     this.log("Lancement du navigateur…");
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: true, args: CHROMIUM_ARGS });
     const ctx = await browser.newContext({
       userAgent: UA,
       locale: "fr-FR",

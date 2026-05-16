@@ -20,6 +20,8 @@ RUN tsc
 FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Limite la heap V8 de Node à 350 MB pour laisser de la place à Chromium
+ENV NODE_OPTIONS="--max-old-space-size=350"
 
 RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 

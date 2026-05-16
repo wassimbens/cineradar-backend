@@ -22,6 +22,7 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import type { Browser, BrowserContext } from "playwright";
 import { Version } from "@prisma/client";
 import { BaseScraper } from "./base.scraper.js";
+import { CHROMIUM_ARGS } from "./chromium-args.js";
 import {
   ScraperResult,
   ScrapedCinema,
@@ -284,8 +285,7 @@ export class PatheScraper extends BaseScraper {
   private async launchBrowser(): Promise<void> {
     this.browser = await (chromium as { launch: (o: unknown) => Promise<Browser> }).launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu",
-             "--disable-blink-features=AutomationControlled"],
+      args: [...CHROMIUM_ARGS, "--disable-blink-features=AutomationControlled"],
     });
     this.context = await this.browser.newContext({
       userAgent: HEADERS["User-Agent"],

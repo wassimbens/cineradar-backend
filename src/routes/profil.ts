@@ -555,7 +555,10 @@ const profilRoutes: FastifyPluginAsync = async (fastify) => {
         where: { followedId: user.id },
         include: {
           follower: {
-            select: { id: true, pseudo: true, nom: true, avatar: true, bio: true },
+            select: {
+              id: true, pseudo: true, nom: true, avatar: true, bio: true,
+              _count: { select: { filmsVus: true, avis: true, following: true, followers: true } },
+            },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -576,7 +579,10 @@ const profilRoutes: FastifyPluginAsync = async (fastify) => {
         where: { followerId: user.id },
         include: {
           followed: {
-            select: { id: true, pseudo: true, nom: true, avatar: true, bio: true },
+            select: {
+              id: true, pseudo: true, nom: true, avatar: true, bio: true,
+              _count: { select: { filmsVus: true, avis: true, following: true, followers: true } },
+            },
           },
         },
         orderBy: { createdAt: "desc" },

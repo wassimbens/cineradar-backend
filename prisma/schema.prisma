@@ -54,6 +54,8 @@ model User {
   notifications       Notification[]
   listesCreees        Liste[]             @relation("ListesCreees")
   listeMembres        ListeMembre[]       @relation("ListesMembre")
+  messagesSent        Message[]           @relation("MessagesSent")
+  messagesReceived    Message[]           @relation("MessagesReceived")
 }
 
 // ── Notifications in-app ──────────────────────────────────
@@ -392,4 +394,21 @@ model SeanceNotifiee {
   envoyeAt DateTime @default(now())
 
   @@unique([alerteId, seanceId]) // Contrainte d'unicité : une notif par couple
+}
+
+// Messagerie entre utilisateurs
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  lu         Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  senderId   String
+  sender     User     @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("MessagesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, receiverId])
+  @@index([receiverId, lu])
+  @@index([receiverId, createdAt(sort: Desc)])
 }

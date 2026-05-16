@@ -36,6 +36,21 @@ const alertesRoutes: FastifyPluginAsync = async (fastify) => {
     const { email, filmTitre, ville, rayon } = parsed.data;
 
     try {
+      // Vérifier la limite d'alertes pour les utilisateurs non-Pro
+      const { prisma } = await import("../lib/prisma.js");
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { isPremium: true, _count: { select: { alertes: { where: { active: true } } } } },
+      });
+      const MAX_ALERTES_FREE = 3;
+      if (user && !user.isPremium && user._count.alertes >= MAX_ALERTES_FREE) {
+        return reply.code(403).send({
+          error: "Limite atteinte",
+          message: `Les comptes gratuits sont limités à ${MAX_ALERTES_FREE} alertes actives. Passez à Pro pour des alertes illimitées.`,
+          limitReached: true,
+        });
+      }
+
       const { alerte, created } = await alertesService.createAlerte({
         email,
         filmTitre,

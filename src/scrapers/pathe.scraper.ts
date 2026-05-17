@@ -50,7 +50,7 @@ const JSON_HEADERS = {
   "x-nextjs-data": "1",
 };
 
-// ── Cinémas Pathé France (27 établissements) ──────────────
+// ── Cinémas Pathé + Gaumont France (même site pathe.fr) ───
 
 const PATHE_CINEMAS = [
   // ── Paris ──
@@ -92,6 +92,24 @@ const PATHE_CINEMAS = [
   { slug: "pathe-montpellier",     name: "Pathé Montpellier",          address: "Odysseum, Av Raymond Dugrand",    city: "Montpellier",    zipCode: "34000", latitude: 43.6049, longitude: 3.9200 },
   // ── Clermont-Ferrand ──
   { slug: "pathe-clermont-ferrand", name: "Pathé Clermont-Ferrand",    address: "27 Bd François Mitterrand",      city: "Clermont-Ferrand", zipCode: "63000", latitude: 45.7797, longitude: 3.0863 },
+
+  // ── Gaumont (exploités par Pathé, même site pathe.fr) ────────────────────
+  // Slugs déduits du pattern pathe.fr/cinemas/{slug} — ignorés si 404
+  // ── Paris ──
+  { slug: "gaumont-aquaboulevard",       name: "Gaumont Aquaboulevard",       address: "37 Rue Balard",              city: "Paris",            zipCode: "75015", latitude: 48.8393, longitude: 2.2790 },
+  { slug: "gaumont-alesia",              name: "Gaumont Alésia",              address: "73 Av du Gal Leclerc",       city: "Paris",            zipCode: "75014", latitude: 48.8259, longitude: 2.3264 },
+  { slug: "gaumont-parnasse",            name: "Gaumont Parnasse",            address: "92 Bd du Montparnasse",      city: "Paris",            zipCode: "75014", latitude: 48.8424, longitude: 2.3254 },
+  { slug: "gaumont-ambassade",           name: "Gaumont Ambassade",           address: "50 Av des Champs-Élysées",   city: "Paris",            zipCode: "75008", latitude: 48.8698, longitude: 2.3074 },
+  { slug: "gaumont-opera-premier",       name: "Gaumont Opéra Premier",       address: "2 Rue Halévy",               city: "Paris",            zipCode: "75009", latitude: 48.8716, longitude: 2.3310 },
+  { slug: "gaumont-opera-capucines",     name: "Gaumont Opéra Capucines",     address: "31 Bd des Capucines",        city: "Paris",            zipCode: "75002", latitude: 48.8706, longitude: 2.3324 },
+  { slug: "gaumont-grand-ecran-italie",  name: "Gaumont Grand Écran Italie",  address: "30 Pl d'Italie",             city: "Paris",            zipCode: "75013", latitude: 48.8312, longitude: 2.3561 },
+  // ── Île-de-France ──
+  { slug: "gaumont-montrouge",           name: "Gaumont Montrouge",           address: "16 Av de la République",     city: "Montrouge",        zipCode: "92120", latitude: 48.8179, longitude: 2.3229 },
+  // ── Province ──
+  { slug: "gaumont-bordeaux",            name: "Gaumont Bordeaux Mériadeck",  address: "2 Rue de Condé",             city: "Bordeaux",         zipCode: "33000", latitude: 44.8376, longitude: -0.5813 },
+  { slug: "gaumont-nantes",              name: "Gaumont Nantes Mangin",       address: "22 Rue Henri Chevalier",     city: "Nantes",           zipCode: "44000", latitude: 47.2184, longitude: -1.5536 },
+  { slug: "gaumont-caen",                name: "Gaumont Caen",                address: "5 Pl de la Résistance",      city: "Caen",             zipCode: "14000", latitude: 49.1829, longitude: -0.3707 },
+  { slug: "gaumont-roissy",              name: "Gaumont Roissy",              address: "Zone Hôtelière de Roissy",   city: "Roissy-en-France", zipCode: "95700", latitude: 49.0028, longitude: 2.5266 },
 ];
 
 // ── Helpers ───────────────────────────────────────────────

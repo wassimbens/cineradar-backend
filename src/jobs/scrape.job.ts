@@ -23,6 +23,7 @@ import { UgcScraper } from "../scrapers/ugc.scraper.js";
 import { AllocineScraper } from "../scrapers/allocine.scraper.js";
 import { PatheScraper } from "../scrapers/pathe.scraper.js";
 import { Mk2Scraper } from "../scrapers/mk2.scraper.js";
+import { CgrScraper } from "../scrapers/cgr.scraper.js";
 import { scraperService } from "../services/scraper.service.js";
 
 // ── Registre des scrapers actifs ──────────────────────────
@@ -32,6 +33,7 @@ const SCRAPERS: BaseScraper[] = [
   new AllocineScraper(),
   new PatheScraper(),
   new Mk2Scraper(),
+  new CgrScraper(),
 ];
 
 // ── Runner ────────────────────────────────────────────────

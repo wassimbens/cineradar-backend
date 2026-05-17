@@ -36,9 +36,9 @@ import {
 // ── Config ────────────────────────────────────────────────
 
 const DAYS_AHEAD       = 30;
-const MAX_CINEMAS      = 1000;
+const MAX_CINEMAS      = 2000;
 const PAGE_WORKERS     = 3;    // réduit pour moins stresser Cloudflare
-const MAX_VILLE_PAGES  = 400;
+const MAX_VILLE_PAGES  = 800;
 
 /** Délai de base entre deux jours d'un même cinéma (ms) */
 const DELAY_BETWEEN_DATES_MS = 1_500;

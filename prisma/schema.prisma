@@ -56,6 +56,7 @@ model User {
   listeMembres        ListeMembre[]       @relation("ListesMembre")
   messagesSent        Message[]           @relation("MessagesSent")
   messagesReceived    Message[]           @relation("MessagesReceived")
+  messageReactions    MessageReaction[]
 }
 
 // ── Notifications in-app ──────────────────────────────────
@@ -408,7 +409,28 @@ model Message {
   receiverId String
   receiver   User     @relation("MessagesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
 
+  // Réponse à un message
+  replyToId  String?
+  replyTo    Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies    Message[] @relation("MessageReplies")
+
+  reactions  MessageReaction[]
+
   @@index([senderId, receiverId])
   @@index([receiverId, lu])
   @@index([receiverId, createdAt(sort: Desc)])
+}
+
+// Réactions aux messages (emoji)
+model MessageReaction {
+  id        String   @id @default(cuid())
+  emoji     String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, messageId, emoji])
+  @@index([messageId])
 }

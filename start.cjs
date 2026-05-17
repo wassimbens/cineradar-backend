@@ -61,6 +61,8 @@ async function main() {
     await deleteOrphans(prisma, 'UserPosterChoice',   'userId',     'User', 'id');
     await deleteOrphans(prisma, 'Message',            'senderId',   'User', 'id');
     await deleteOrphans(prisma, 'Message',            'receiverId', 'User', 'id');
+    await deleteOrphans(prisma, 'MessageReaction',    'userId',     'User',    'id');
+    await deleteOrphans(prisma, 'MessageReaction',    'messageId',  'Message', 'id');
 
     // Tables liées à Film
     await deleteOrphans(prisma, 'FilmFavori',    'filmId', 'Film', 'id');

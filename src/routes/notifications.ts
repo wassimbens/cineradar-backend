@@ -41,8 +41,39 @@ const notifRoutes: FastifyPluginAsync = async (fastify) => {
       take:    50,
     });
 
-    const unread = notifs.filter(n => !n.lu).length;
-    return reply.send({ notifications: notifs, unread });
+    // Pour follow/message: remplacer imageUrl par l'avatar actuel de l'acteur
+    // (l'avatar stocké au moment de la création peut être obsolète)
+    const pseudosToFetch = new Set<string>();
+    for (const n of notifs) {
+      if ((n.type === "follow" || n.type === "message") && n.lien) {
+        const match = n.lien.match(/^\/(?:profil|messages)\/(.+)$/);
+        if (match) pseudosToFetch.add(match[1]);
+      }
+    }
+
+    const currentAvatars = new Map<string, string | null>();
+    if (pseudosToFetch.size > 0) {
+      const users = await prisma.user.findMany({
+        where:  { pseudo: { in: [...pseudosToFetch] } },
+        select: { pseudo: true, avatar: true },
+      });
+      for (const u of users) {
+        if (u.pseudo) currentAvatars.set(u.pseudo, u.avatar);
+      }
+    }
+
+    const enriched = notifs.map(n => {
+      if ((n.type === "follow" || n.type === "message") && n.lien) {
+        const match = n.lien.match(/^\/(?:profil|messages)\/(.+)$/);
+        if (match && currentAvatars.has(match[1])) {
+          return { ...n, imageUrl: currentAvatars.get(match[1]) ?? null };
+        }
+      }
+      return n;
+    });
+
+    const unread = enriched.filter(n => !n.lu).length;
+    return reply.send({ notifications: enriched, unread });
   });
 
   // ── PATCH /api/notifications/read-all ─────────────────

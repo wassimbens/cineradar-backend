@@ -3,7 +3,7 @@
 //
 //  Stratégie (mêmes principes que le scraper UGC amélioré) :
 //    1. Fetch HTTP direct + extraction __NEXT_DATA__ (Next.js SSR)
-//    2. Pour J+1…J+29 : _next/data/{buildId}/nos-salles/{slug}.json
+//    2. Pour J+1…J+29 : _next/data/{buildId}/salle/{slug}.json
 //    3. Fallback JSON-LD ScreeningEvent (cheerio)
 //    4. Fallback Playwright si les deux premiers échouent
 //
@@ -46,18 +46,19 @@ const JSON_HEADERS = {
 };
 
 // ── Cinémas MK2 ───────────────────────────────────────────
+// Source : https://www.mk2.com/sitemap.xml (slugs vérifiés)
+// Le site utilise /salle/{slug} depuis 2024 (ancien : /nos-salles/)
+// Bastille, Odéon et Quai de Seine/Loire ont été fusionnés en une seule page
 
 const MK2_CINEMAS = [
-  { slug: "mk2-bibliotheque",        nom: "MK2 Bibliothèque",           adresse: "128-162 Av de France",          ville: "Paris", cp: "75013", lat: 48.8318, lng: 2.3799 },
-  { slug: "mk2-bastille",            nom: "MK2 Bastille (côté Port)",   adresse: "14 Bd de la Bastille",          ville: "Paris", cp: "75012", lat: 48.8499, lng: 2.3658 },
-  { slug: "mk2-bastille-boulevard",  nom: "MK2 Bastille (côté Bd)",     adresse: "4 Bd Richard Lenoir",           ville: "Paris", cp: "75011", lat: 48.8502, lng: 2.3672 },
-  { slug: "mk2-beaubourg",           nom: "MK2 Beaubourg",              adresse: "50 Rue Rambuteau",              ville: "Paris", cp: "75003", lat: 48.8609, lng: 2.3518 },
-  { slug: "mk2-nation",              nom: "MK2 Nation",                 adresse: "133 Bd Diderot",                ville: "Paris", cp: "75012", lat: 48.8487, lng: 2.3943 },
-  { slug: "mk2-odeon-cote-seine",    nom: "MK2 Odéon (côté Seine)",    adresse: "10 Rue de l'École de Médecine", ville: "Paris", cp: "75006", lat: 48.8510, lng: 2.3427 },
-  { slug: "mk2-odeon-saint-germain", nom: "MK2 Odéon (St-Germain)",    adresse: "9 Rue de l'École de Médecine",  ville: "Paris", cp: "75006", lat: 48.8512, lng: 2.3425 },
-  { slug: "mk2-parnasse",            nom: "MK2 Parnasse",               adresse: "94 Rue du Maine",               ville: "Paris", cp: "75014", lat: 48.8381, lng: 2.3233 },
-  { slug: "mk2-quai-de-seine",       nom: "MK2 Quai de Seine",          adresse: "14 Quai de la Seine",           ville: "Paris", cp: "75019", lat: 48.8833, lng: 2.3647 },
-  { slug: "mk2-quai-de-loire",       nom: "MK2 Quai de Loire",          adresse: "7 Quai de Loire",               ville: "Paris", cp: "75019", lat: 48.8839, lng: 2.3641 },
+  { slug: "mk2-bibliotheque",                       nom: "MK2 Bibliothèque",        adresse: "128-162 Av de France",    ville: "Paris", cp: "75013", lat: 48.8318, lng: 2.3799 },
+  { slug: "mk2-bastille-beaumarchais-fg-st-antoine", nom: "MK2 Bastille",            adresse: "4 Bd Beaumarchais",       ville: "Paris", cp: "75011", lat: 48.8533, lng: 2.3695 },
+  { slug: "mk2-beaubourg",                           nom: "MK2 Beaubourg",           adresse: "50 Rue Rambuteau",        ville: "Paris", cp: "75003", lat: 48.8609, lng: 2.3518 },
+  { slug: "mk2-nation",                              nom: "MK2 Nation",              adresse: "133 Bd Diderot",          ville: "Paris", cp: "75012", lat: 48.8487, lng: 2.3943 },
+  { slug: "mk2-odeon-st-germain-st-michel",          nom: "MK2 Odéon",               adresse: "113 Bd Saint-Germain",    ville: "Paris", cp: "75006", lat: 48.8511, lng: 2.3414 },
+  { slug: "mk2-parnasse",                            nom: "MK2 Parnasse",            adresse: "94 Rue du Maine",         ville: "Paris", cp: "75014", lat: 48.8381, lng: 2.3233 },
+  { slug: "mk2-quai-seine-quai-loire",               nom: "MK2 Quai de Seine/Loire", adresse: "14 Quai de la Seine",     ville: "Paris", cp: "75019", lat: 48.8836, lng: 2.3644 },
+  { slug: "mk2-gambetta",                            nom: "MK2 Gambetta",            adresse: "6 Rue Belgrand",          ville: "Paris", cp: "75020", lat: 48.8655, lng: 2.3988 },
 ];
 
 // ── Helpers ───────────────────────────────────────────────
@@ -153,7 +154,7 @@ export class Mk2Scraper extends BaseScraper {
     data: Array<Record<string, unknown>>;
     html: string;
   }> {
-    const url = `${BASE_URL}/nos-salles/${slug}`;
+    const url = `${BASE_URL}/salle/${slug}`;
     const res = await fetchWithRetry(url, { headers: HEADERS });
     if (!res || !res.ok) return { buildId: null, data: [], html: "" };
 
@@ -177,8 +178,8 @@ export class Mk2Scraper extends BaseScraper {
     buildId: string,
     dateStr: string
   ): Promise<Array<Record<string, unknown>>> {
-    // MK2 stocke ses pages sous /nos-salles/{slug}
-    const url = `${BASE_URL}/_next/data/${buildId}/nos-salles/${slug}.json?date=${dateStr}&slug=${slug}`;
+    // MK2 stocke ses pages sous /salle/{slug}
+    const url = `${BASE_URL}/_next/data/${buildId}/salle/${slug}.json?date=${dateStr}&slug=${slug}`;
     const res = await fetchWithRetry(url, { headers: JSON_HEADERS });
     if (!res || !res.ok) return [];
     try {
@@ -335,7 +336,7 @@ export class Mk2Scraper extends BaseScraper {
         const dateStr = toDateStr(date);
         try {
           const resp = await page.goto(
-            `${BASE_URL}/nos-salles/${slug}?date=${dateStr}`,
+            `${BASE_URL}/salle/${slug}?date=${dateStr}`,
             { waitUntil: "domcontentloaded", timeout: 25_000 }
           );
           if (resp && resp.status() < 400) {
@@ -438,7 +439,7 @@ export class Mk2Scraper extends BaseScraper {
             codePostal: cinemaInfo.cp,
             latitude:  cinemaInfo.lat,
             longitude: cinemaInfo.lng,
-            siteWeb:   `${BASE_URL}/nos-salles/${cinemaInfo.slug}`,
+            siteWeb:   `${BASE_URL}/salle/${cinemaInfo.slug}`,
             films,
           } as ScrapedCinema);
 

@@ -220,6 +220,7 @@ model Film {
   avis           Avis[]
   filmsVus       FilmVu[]
   listesFilm     ListeFilm[]
+  messagesPartage Message[]
 }
 
 // Historique de visionnage : films vus par l'utilisateur
@@ -402,6 +403,10 @@ model Message {
   id         String   @id @default(cuid())
   content    String
   lu         Boolean  @default(false)
+  edited     Boolean  @default(false)
+  editedAt   DateTime?
+  deleted    Boolean  @default(false)
+  pinned     Boolean  @default(false)
   createdAt  DateTime @default(now())
 
   senderId   String
@@ -413,6 +418,10 @@ model Message {
   replyToId  String?
   replyTo    Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
   replies    Message[] @relation("MessageReplies")
+
+  // Film partagé
+  filmId     String?
+  film       Film?    @relation(fields: [filmId], references: [id], onDelete: SetNull)
 
   reactions  MessageReaction[]
 

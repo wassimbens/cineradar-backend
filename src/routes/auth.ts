@@ -62,6 +62,22 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
   });
 
+  // ── GET /api/auth/check-pseudo ───────────────────────
+  fastify.get<{ Querystring: { pseudo: string } }>(
+    "/auth/check-pseudo",
+    async (req, reply) => {
+      const { pseudo } = req.query;
+      if (!pseudo || !PSEUDO_REGEX.test(pseudo)) {
+        return reply.send({ available: false, reason: "format" });
+      }
+      const existing = await prisma.user.findUnique({
+        where: { pseudo },
+        select: { id: true },
+      });
+      return reply.send({ available: !existing });
+    }
+  );
+
   // ── POST /api/auth/register ───────────────────────────
   fastify.post<{
     Body: { email: string; pseudo: string; password: string; nom?: string };

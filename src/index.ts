@@ -68,9 +68,12 @@ async function start() {
     if (secret !== process.env["ADMIN_SECRET"]) {
       return reply.code(401).send({ error: "Non autorisé" });
     }
-    runAllScrapers().catch((err) =>
-      console.error("[ADMIN] Erreur scraping manuel :", err)
-    );
+    // Lancé en process isolé pour éviter l'OOM dans le process Fastify principal
+    const child = spawn("node", ["dist/scripts/run-scraper.js"], {
+      cwd: process.cwd(), shell: true, stdio: "inherit",
+    });
+    child.on("error", (err) => console.error("[ADMIN] Erreur scraping HTTP :", err.message));
+    child.on("close", (code) => console.log(`[ADMIN] Scraping HTTP terminé (code ${code})`));
     return { message: "Scraping HTTP (UGC/AlloCiné/Pathé/MK2) lancé en arrière-plan" };
   });
 
@@ -79,9 +82,12 @@ async function start() {
     if (secret !== process.env["ADMIN_SECRET"]) {
       return reply.code(401).send({ error: "Non autorisé" });
     }
-    runCgrScraper().catch((err) =>
-      console.error("[ADMIN] Erreur scraping CGR manuel :", err)
-    );
+    // Lancé en process isolé (Playwright/Chromium = ~300MB RAM)
+    const child = spawn("node", ["dist/scripts/run-scraper.js", "cgr"], {
+      cwd: process.cwd(), shell: true, stdio: "inherit",
+    });
+    child.on("error", (err) => console.error("[ADMIN] Erreur scraping CGR :", err.message));
+    child.on("close", (code) => console.log(`[ADMIN] Scraping CGR terminé (code ${code})`));
     return { message: "Scraping CGR (Playwright) lancé en arrière-plan" };
   });
 

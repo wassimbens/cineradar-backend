@@ -159,8 +159,6 @@ async function main() {
     const keys = new Set<string>();
     if (f.titre) keys.add(`t:${norm(f.titre)}|y:${f.annee ?? "?"}`);
     if (f.titreOriginal) keys.add(`t:${norm(f.titreOriginal)}|y:${f.annee ?? "?"}`);
-    // Croisement : si titre = titreOriginal d'un autre film, ils seront groupés
-    if (f.titreOriginal) keys.add(`t:${norm(f.titreOriginal)}|y:${f.annee ?? "?"}`);
     for (const k of keys) {
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k)!.push(f);

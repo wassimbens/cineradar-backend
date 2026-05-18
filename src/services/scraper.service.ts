@@ -323,41 +323,29 @@ export class ScraperService {
       const salleNom = seance.salleNom ?? "Salle principale";
       const salleId = await this.getSalleId(salleNom, cinemaId);
 
-      // Upsert séance sur (filmId + salleId + dateHeure)
-      // Évite les doublons si le scraper tourne deux fois dans la journée
-      const existing = await prisma.seance.findFirst({
-        where: {
+      // Upsert atomique sur (filmId, salleId, dateHeure) — clé unique garantie par le schéma
+      const result = await prisma.seance.upsert({
+        where: { filmId_salleId_dateHeure: { filmId, salleId, dateHeure: seance.dateHeure } },
+        create: {
           filmId,
           salleId,
           dateHeure: seance.dateHeure,
+          version: seance.version as Version,
+          format: seance.format,
+          prix: seance.prix,
+          source,
+        },
+        update: {
+          version: seance.version as Version,
+          format: seance.format,
+          prix: seance.prix,
+          source,
         },
       });
-
-      if (existing) {
-        await prisma.seance.update({
-          where: { id: existing.id },
-          data: {
-            version: seance.version as Version,
-            format: seance.format ?? existing.format,
-            prix: seance.prix ?? existing.prix,
-            source,
-          },
-        });
-        stats.seancesUpdated++;
-      } else {
-        await prisma.seance.create({
-          data: {
-            filmId,
-            salleId,
-            dateHeure: seance.dateHeure,
-            version: seance.version as Version,
-            format: seance.format,
-            prix: seance.prix,
-            source,
-          },
-        });
-        stats.seancesCreated++;
-      }
+      // Prisma ne distingue pas create vs update dans upsert sans métadonnée supplémentaire ;
+      // on compte côté créé si createdAt = updatedAt (< 1s d'écart)
+      const isNew = Math.abs(result.createdAt.getTime() - result.updatedAt.getTime()) < 1000;
+      if (isNew) stats.seancesCreated++; else stats.seancesUpdated++;
     }
   }
 

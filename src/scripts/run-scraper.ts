@@ -11,26 +11,36 @@ import { UgcScraper } from "../scrapers/ugc.scraper.js";
 import { AllocineScraper } from "../scrapers/allocine.scraper.js";
 import { PatheScraper } from "../scrapers/pathe.scraper.js";
 import { Mk2Scraper } from "../scrapers/mk2.scraper.js";
+import { CgrScraper } from "../scrapers/cgr.scraper.js";
 import { scraperService } from "../services/scraper.service.js";
 import { BaseScraper } from "../scrapers/base.scraper.js";
 import { prisma } from "../lib/prisma.js";
 import { spawnSync } from "child_process";
 
-const ALL_SCRAPERS: Record<string, BaseScraper> = {
+// Scrapers HTTP légers (pas de Playwright) — lancés par défaut et par le cron 03:00
+const HTTP_SCRAPERS: Record<string, BaseScraper> = {
   ugc: new UgcScraper(),
   allocine: new AllocineScraper(),
   pathe: new PatheScraper(),
   mk2: new Mk2Scraper(),
 };
 
+// Scrapers Playwright — lourds en RAM, lancés séparément (cron 09:00 ou manuellement)
+const PLAYWRIGHT_SCRAPERS: Record<string, BaseScraper> = {
+  cgr: new CgrScraper(),
+};
+
+const ALL_SCRAPERS: Record<string, BaseScraper> = { ...HTTP_SCRAPERS, ...PLAYWRIGHT_SCRAPERS };
+
 async function main() {
   const target = process.argv[2]?.toLowerCase();
 
+  // Sans argument → HTTP uniquement (évite l'OOM sur le cron 03:00)
   const scrapers = target
     ? ALL_SCRAPERS[target]
       ? [ALL_SCRAPERS[target]]
       : (console.error(`Scraper inconnu : "${target}". Choix : ${Object.keys(ALL_SCRAPERS).join(", ")}`), process.exit(1))
-    : Object.values(ALL_SCRAPERS);
+    : Object.values(HTTP_SCRAPERS);
 
   console.log(`\n🚀 Lancement de ${(scrapers as BaseScraper[]).length} scraper(s)…\n`);
 

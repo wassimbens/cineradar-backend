@@ -85,6 +85,41 @@ async function start() {
     return { message: "Scraping CGR (Playwright) lancé en arrière-plan" };
   });
 
+  // ── Endpoints de maintenance (déduplication, fix affiches) ──
+
+  app.post("/admin/dedup/films", async (request, reply) => {
+    const secret = request.headers["x-admin-secret"];
+    if (secret !== process.env["ADMIN_SECRET"]) {
+      return reply.code(401).send({ error: "Non autorisé" });
+    }
+    spawn("node", ["dist/scripts/dedup-films.js", "--apply"], {
+      cwd: process.cwd(), shell: true, stdio: "inherit",
+    });
+    return { message: "Déduplication films lancée en arrière-plan (--apply)" };
+  });
+
+  app.post("/admin/dedup/cinemas", async (request, reply) => {
+    const secret = request.headers["x-admin-secret"];
+    if (secret !== process.env["ADMIN_SECRET"]) {
+      return reply.code(401).send({ error: "Non autorisé" });
+    }
+    spawn("node", ["dist/scripts/dedup-cinemas.js"], {
+      cwd: process.cwd(), shell: true, stdio: "inherit",
+    });
+    return { message: "Déduplication cinémas lancée en arrière-plan" };
+  });
+
+  app.post("/admin/fix/posters", async (request, reply) => {
+    const secret = request.headers["x-admin-secret"];
+    if (secret !== process.env["ADMIN_SECRET"]) {
+      return reply.code(401).send({ error: "Non autorisé" });
+    }
+    spawn("node", ["dist/scripts/auto-fix-posters.js", "--all"], {
+      cwd: process.cwd(), shell: true, stdio: "inherit",
+    });
+    return { message: "Fix affiches (--all) lancé en arrière-plan" };
+  });
+
   // Routes métier
   await app.register(filmsRoutes,   { prefix: "/api" });
   await app.register(cinemasRoutes, { prefix: "/api" });

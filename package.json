@@ -26,7 +26,12 @@
     "scrape:mk2": "tsx src/scripts/run-scraper.ts mk2",
     "enrich:directors": "tsx src/scripts/enrich-directors-filmography.ts",
     "enrich:actors": "tsx src/scripts/enrich-actors-filmography.ts",
-    "enrich:all": "tsx src/scripts/enrich-directors-filmography.ts && tsx src/scripts/enrich-actors-filmography.ts"
+    "enrich:all": "tsx src/scripts/enrich-directors-filmography.ts && tsx src/scripts/enrich-actors-filmography.ts",
+    "dedup:films": "tsx src/scripts/dedup-films.ts --apply",
+    "dedup:cinemas": "tsx src/scripts/dedup-cinemas.ts",
+    "dedup:all": "tsx src/scripts/dedup-films.ts --apply && tsx src/scripts/dedup-cinemas.ts",
+    "fix:posters:force": "tsx src/scripts/auto-fix-posters.ts --all",
+    "check:duplicates": "tsx src/scripts/check-duplicates.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^9.4.0",

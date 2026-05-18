@@ -289,7 +289,6 @@ model Seance {
 
   notifications SeanceNotifiee[]
 
-  @@unique([filmId, salleId, dateHeure])
   @@index([filmId, dateHeure])
   @@index([salleId, dateHeure])
 }

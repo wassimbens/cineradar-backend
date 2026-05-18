@@ -10,7 +10,7 @@ import cron from "node-cron";
 import { spawn } from "child_process";
 import { connectRedis } from "./lib/redis.js";
 import { prisma } from "./lib/prisma.js";
-import { registerScrapeJob, runAllScrapers } from "./jobs/scrape.job.js";
+import { registerScrapeJob, runAllScrapers, runCgrScraper } from "./jobs/scrape.job.js";
 import filmsRoutes from "./routes/films.js";
 import cinemasRoutes from "./routes/cinemas.js";
 import searchRoutes from "./routes/search.js";
@@ -71,7 +71,18 @@ async function start() {
     runAllScrapers().catch((err) =>
       console.error("[ADMIN] Erreur scraping manuel :", err)
     );
-    return { message: "Scraping lancé en arrière-plan" };
+    return { message: "Scraping HTTP (UGC/AlloCiné/Pathé/MK2) lancé en arrière-plan" };
+  });
+
+  app.post("/admin/scrape/cgr", async (request, reply) => {
+    const secret = request.headers["x-admin-secret"];
+    if (secret !== process.env["ADMIN_SECRET"]) {
+      return reply.code(401).send({ error: "Non autorisé" });
+    }
+    runCgrScraper().catch((err) =>
+      console.error("[ADMIN] Erreur scraping CGR manuel :", err)
+    );
+    return { message: "Scraping CGR (Playwright) lancé en arrière-plan" };
   });
 
   // Routes métier

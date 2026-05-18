@@ -1,8 +1,9 @@
 // ─────────────────────────────────────────────────────────
 //  Job de scraping planifié
 //
-//  Planification : tous les jours à 06:00 (heure Paris)
-//  Cron expression : "0 6 * * *"
+//  Planification :
+//    06:00 — UGC, AlloCiné, Pathé/Gaumont, MK2  (scrapers HTTP légers)
+//    09:00 — CGR  (Playwright/Chromium, lancé séparément pour éviter l'OOM)
 //
 //  Déroulement :
 //    1. Lance tous les scrapers enregistrés
@@ -26,27 +27,24 @@ import { Mk2Scraper } from "../scrapers/mk2.scraper.js";
 import { CgrScraper } from "../scrapers/cgr.scraper.js";
 import { scraperService } from "../services/scraper.service.js";
 
-// ── Registre des scrapers actifs ──────────────────────────
+// ── Registre des scrapers HTTP (06:00) ───────────────────
+// CGR utilise Playwright/Chromium et est planifié séparément à 09:00
+// pour ne pas provoquer d'OOM en cumulant avec AlloCiné.
 
-const SCRAPERS: BaseScraper[] = [
+const HTTP_SCRAPERS: BaseScraper[] = [
   new UgcScraper(),
   new AllocineScraper(),
   new PatheScraper(),
   new Mk2Scraper(),
-  new CgrScraper(),
 ];
 
-// ── Runner ────────────────────────────────────────────────
+// ── Runner générique ──────────────────────────────────────
 
-/**
- * Exécute tous les scrapers enregistrés et persiste les résultats.
- * Peut être appelé manuellement (ex: via endpoint d'admin) ou par le cron.
- */
-export async function runAllScrapers(): Promise<void> {
+async function runScrapers(scrapers: BaseScraper[], label: string): Promise<void> {
   const startedAt = new Date();
   console.log(
     `\n${"─".repeat(50)}\n` +
-      `🕐 Scraping démarré — ${startedAt.toLocaleString("fr-FR")}\n` +
+      `🕐 Scraping [${label}] démarré — ${startedAt.toLocaleString("fr-FR")}\n` +
       `${"─".repeat(50)}`
   );
 
@@ -55,20 +53,15 @@ export async function runAllScrapers(): Promise<void> {
   let totalSeances = 0;
   let totalErrors = 0;
 
-  // Exécuter chaque scraper de façon séquentielle
-  // (évite de surcharger les serveurs cibles simultanément)
-  for (const scraper of SCRAPERS) {
+  for (const scraper of scrapers) {
     console.log(`\n🔍 Lancement du scraper : ${scraper.name.toUpperCase()}`);
 
     try {
-      // 1. Scraping
       const result = await scraper.scrape();
 
-      // 2. Persistance en BDD
       console.log(`💾 Sauvegarde en base de données…`);
       const stats = await scraperService.save(result);
 
-      // 3. Bilan par scraper
       const filmCount = result.cinemas.reduce(
         (acc, c) => acc + c.films.length,
         0
@@ -105,21 +98,21 @@ export async function runAllScrapers(): Promise<void> {
         `❌ Erreur fatale dans le scraper ${scraper.name} :`,
         err
       );
-      // On continue avec les scrapers suivants
     }
   }
 
-  // 4. Nettoyage des séances passées
-  try {
-    const deleted = await scraperService.cleanOldSeances();
-    if (deleted > 0) {
-      console.log(`\n🧹 ${deleted} séance(s) passée(s) supprimée(s)`);
+  // Nettoyage des séances passées (uniquement après le batch principal)
+  if (label === "HTTP") {
+    try {
+      const deleted = await scraperService.cleanOldSeances();
+      if (deleted > 0) {
+        console.log(`\n🧹 ${deleted} séance(s) passée(s) supprimée(s)`);
+      }
+    } catch (err) {
+      console.error("⚠️  Erreur lors du nettoyage des séances :", err);
     }
-  } catch (err) {
-    console.error("⚠️  Erreur lors du nettoyage des séances :", err);
   }
 
-  // 5. Bilan global
   const durationMs = Date.now() - startedAt.getTime();
   const durationStr =
     durationMs > 60_000
@@ -128,7 +121,7 @@ export async function runAllScrapers(): Promise<void> {
 
   console.log(
     `\n${"─".repeat(50)}\n` +
-      `✅ Scraping terminé en ${durationStr}\n` +
+      `✅ Scraping [${label}] terminé en ${durationStr}\n` +
       `   Total cinémas : ${totalCinemas}\n` +
       `   Total films   : ${totalFilms}\n` +
       `   Total séances : ${totalSeances}\n` +
@@ -136,8 +129,25 @@ export async function runAllScrapers(): Promise<void> {
       `${"─".repeat(50)}\n`
   );
 
-  // 6. Post-scrape : enrichissement affiches + vérification alertes
-  runPostScrapeJobs();
+  if (label === "HTTP") {
+    runPostScrapeJobs();
+  }
+}
+
+/**
+ * Exécute les scrapers HTTP (UGC, AlloCiné, Pathé, MK2).
+ * Appelé à 06:00 ou manuellement.
+ */
+export async function runAllScrapers(): Promise<void> {
+  await runScrapers(HTTP_SCRAPERS, "HTTP");
+}
+
+/**
+ * Exécute le scraper CGR (Playwright).
+ * Appelé à 09:00, après que le batch HTTP ait libéré la mémoire.
+ */
+export async function runCgrScraper(): Promise<void> {
+  await runScrapers([new CgrScraper()], "CGR");
 }
 
 /** Lance auto-fix-posters puis check-alertes en sous-processus (non bloquant) */
@@ -167,41 +177,53 @@ function runPostScrapeJobs(): void {
   }
 }
 
-// ── Enregistrement du cron ────────────────────────────────
+// ── Enregistrement des crons ──────────────────────────────
 
 /**
- * Enregistre le job cron quotidien à 06:00.
- * À appeler au démarrage du serveur.
+ * Enregistre les deux jobs cron :
+ *   - 06:00 → scrapers HTTP (UGC, AlloCiné, Pathé, MK2)
+ *   - 09:00 → scraper CGR (Playwright) isolé pour éviter l'OOM
  */
 export function registerScrapeJob(): void {
-  // "0 6 * * *" = tous les jours à 06h00
-  const cronExpression = process.env["SCRAPE_CRON"] ?? "0 6 * * *";
+  const httpCron = process.env["SCRAPE_CRON"]     ?? "0 6 * * *";
+  const cgrCron  = process.env["SCRAPE_CRON_CGR"] ?? "0 9 * * *";
 
-  if (!cron.validate(cronExpression)) {
-    throw new Error(
-      `Expression cron invalide : "${cronExpression}" (variable SCRAPE_CRON)`
-    );
+  if (!cron.validate(httpCron)) {
+    throw new Error(`Expression cron invalide : "${httpCron}" (SCRAPE_CRON)`);
+  }
+  if (!cron.validate(cgrCron)) {
+    throw new Error(`Expression cron invalide : "${cgrCron}" (SCRAPE_CRON_CGR)`);
   }
 
-  const task = cron.schedule(
-    cronExpression,
+  cron.schedule(
+    httpCron,
     async () => {
-      console.log("[CRON] Déclenchement du job de scraping…");
+      console.log("[CRON] Déclenchement du job HTTP (UGC, AlloCiné, Pathé, MK2)…");
       try {
         await runAllScrapers();
       } catch (err) {
         console.error("[CRON] Erreur fatale non catchée :", err);
       }
     },
-    {
-      timezone: "Europe/Paris",
-    }
+    { timezone: "Europe/Paris" }
+  );
+
+  cron.schedule(
+    cgrCron,
+    async () => {
+      console.log("[CRON] Déclenchement du job CGR (Playwright)…");
+      try {
+        await runCgrScraper();
+      } catch (err) {
+        console.error("[CRON] Erreur fatale non catchée (CGR) :", err);
+      }
+    },
+    { timezone: "Europe/Paris" }
   );
 
   console.log(
-    `✅ Job de scraping planifié : "${cronExpression}" (Europe/Paris)`
+    `✅ Jobs de scraping planifiés :\n` +
+    `   HTTP (UGC/AlloCiné/Pathé/MK2) : "${httpCron}" (Europe/Paris)\n` +
+    `   CGR  (Playwright)              : "${cgrCron}"  (Europe/Paris)`
   );
-
-  // Référence pour pouvoir l'arrêter proprement au shutdown
-  return void task;
 }

@@ -25,7 +25,7 @@ import { AllocineScraper } from "../scrapers/allocine.scraper.js";
 import { PatheScraper } from "../scrapers/pathe.scraper.js";
 import { Mk2Scraper } from "../scrapers/mk2.scraper.js";
 import { CgrScraper } from "../scrapers/cgr.scraper.js";
-import { scraperService } from "../services/scraper.service.js";
+import { scraperService, makeEmptyStats } from "../services/scraper.service.js";
 
 // ── Registre des scrapers HTTP (06:00) ───────────────────
 // CGR utilise Playwright/Chromium et est planifié séparément à 09:00
@@ -56,30 +56,39 @@ async function runScrapers(scrapers: BaseScraper[], label: string): Promise<void
   for (const scraper of scrapers) {
     console.log(`\n🔍 Lancement du scraper : ${scraper.name.toUpperCase()}`);
 
+    // Mode streaming pour AlloCiné : sauvegarde incrémentale cinéma par cinéma
+    const streamStats = makeEmptyStats();
+    if (scraper instanceof AllocineScraper) {
+      scraper.onCinema = async (cinema) => {
+        await scraperService.saveCinema(cinema, scraper.name, streamStats);
+      };
+    }
+
     try {
       const result = await scraper.scrape();
 
-      console.log(`💾 Sauvegarde en base de données…`);
-      const stats = await scraperService.save(result);
+      const stats = scraper instanceof AllocineScraper
+        ? streamStats
+        : (console.log(`💾 Sauvegarde en base de données…`), await scraperService.save(result));
 
-      const filmCount = result.cinemas.reduce(
-        (acc, c) => acc + c.films.length,
-        0
-      );
-      const seanceCount = result.cinemas.reduce(
-        (acc, c) =>
-          acc + c.films.reduce((a, f) => a + f.seances.length, 0),
-        0
-      );
+      const cinemaCount = scraper instanceof AllocineScraper
+        ? stats.cinemasCreated + stats.cinemasUpdated
+        : result.cinemas.length;
+      const filmCount = scraper instanceof AllocineScraper
+        ? stats.filmsCreated + stats.filmsUpdated
+        : result.cinemas.reduce((acc, c) => acc + c.films.length, 0);
+      const seanceCount = scraper instanceof AllocineScraper
+        ? stats.seancesCreated + stats.seancesUpdated
+        : result.cinemas.reduce((acc, c) => acc + c.films.reduce((a, f) => a + f.seances.length, 0), 0);
 
-      totalCinemas += result.cinemas.length;
+      totalCinemas += cinemaCount;
       totalFilms += filmCount;
       totalSeances += seanceCount;
       totalErrors += result.errors.length;
 
       console.log(
         `\n📊 Bilan ${scraper.name.toUpperCase()} :\n` +
-          `   Cinémas : ${result.cinemas.length} scrapés ` +
+          `   Cinémas : ${cinemaCount} scrapés ` +
           `(${stats.cinemasCreated} créés, ${stats.cinemasUpdated} mis à jour)\n` +
           `   Films   : ${filmCount} trouvés ` +
           `(${stats.filmsCreated} créés, ${stats.filmsUpdated} mis à jour)\n` +

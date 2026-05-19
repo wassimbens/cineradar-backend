@@ -53,13 +53,17 @@ import {
 
 // ── Types internes ────────────────────────────────────────
 
-interface SaveStats {
+export interface SaveStats {
   cinemasCreated: number;
   cinemasUpdated: number;
   filmsCreated: number;
   filmsUpdated: number;
   seancesCreated: number;
   seancesUpdated: number;
+}
+
+export function makeEmptyStats(): SaveStats {
+  return { cinemasCreated: 0, cinemasUpdated: 0, filmsCreated: 0, filmsUpdated: 0, seancesCreated: 0, seancesUpdated: 0 };
 }
 
 // ── Service ───────────────────────────────────────────────
@@ -88,7 +92,7 @@ export class ScraperService {
 
   // ── Cinéma ────────────────────────────────────────────
 
-  private async saveCinema(
+  async saveCinema(
     scrapedCinema: ScrapedCinema,
     source: string,
     stats: SaveStats

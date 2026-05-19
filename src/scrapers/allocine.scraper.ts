@@ -162,6 +162,13 @@ async function extractFromPage(page: Page): Promise<{ cinemaIds: string[]; ville
 export class AllocineScraper extends BaseScraper {
   readonly name = "allocine";
 
+  /**
+   * Mode streaming : si défini, chaque cinéma est transmis immédiatement
+   * après scraping et n'est PAS accumulé dans result.cinemas.
+   * Permet d'éviter l'OOM sur 2000+ cinémas.
+   */
+  onCinema?: (cinema: ScrapedCinema) => Promise<void>;
+
   /** Nombre de cinémas consécutifs 100% rate-limités (circuit-breaker) */
   private consecutiveRateLimited = 0;
 
@@ -202,7 +209,11 @@ export class AllocineScraper extends BaseScraper {
         try {
           const { cinema, allRateLimited } = await this.scrapeTheater(ctx, id);
           if (cinema) {
-            result.cinemas.push(cinema);
+            if (this.onCinema) {
+              await this.onCinema(cinema); // sauvegarde immédiate → libère la mémoire
+            } else {
+              result.cinemas.push(cinema);
+            }
             this.log(`  ✓ ${cinema.nom} (${id}) — ${cinema.films.length} film(s)`);
           }
 

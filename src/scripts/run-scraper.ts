@@ -12,7 +12,7 @@ import { AllocineScraper } from "../scrapers/allocine.scraper.js";
 import { PatheScraper } from "../scrapers/pathe.scraper.js";
 import { Mk2Scraper } from "../scrapers/mk2.scraper.js";
 import { CgrScraper } from "../scrapers/cgr.scraper.js";
-import { scraperService } from "../services/scraper.service.js";
+import { scraperService, makeEmptyStats } from "../services/scraper.service.js";
 import { BaseScraper } from "../scrapers/base.scraper.js";
 import { prisma } from "../lib/prisma.js";
 import { spawnSync } from "child_process";
@@ -48,22 +48,33 @@ async function main() {
     console.log(`\n📡 ${scraper.name.toUpperCase()} — démarrage`);
     const startedAt = Date.now();
 
+    // Mode streaming pour AlloCiné : sauvegarde incrémentale cinéma par cinéma
+    const streamStats = makeEmptyStats();
+    if (scraper instanceof AllocineScraper) {
+      scraper.onCinema = async (cinema) => {
+        await scraperService.saveCinema(cinema, scraper.name, streamStats);
+      };
+    }
+
     try {
       const result = await scraper.scrape();
 
-      const filmCount = result.cinemas.reduce((acc, c) => acc + c.films.length, 0);
-      const seanceCount = result.cinemas.reduce(
-        (acc, c) => acc + c.films.reduce((a, f) => a + f.seances.length, 0),
-        0
-      );
+      // Pour les scrapers non-streaming, sauvegarder l'ensemble du résultat
+      const stats = scraper instanceof AllocineScraper
+        ? streamStats
+        : await scraperService.save(result);
 
-      console.log(`\n💾 Sauvegarde en base…`);
-      const stats = await scraperService.save(result);
+      const filmCount = scraper instanceof AllocineScraper
+        ? stats.filmsCreated + stats.filmsUpdated
+        : result.cinemas.reduce((acc, c) => acc + c.films.length, 0);
+      const seanceCount = scraper instanceof AllocineScraper
+        ? stats.seancesCreated + stats.seancesUpdated
+        : result.cinemas.reduce((acc, c) => acc + c.films.reduce((a, f) => a + f.seances.length, 0), 0);
 
       const duration = ((Date.now() - startedAt) / 1000).toFixed(1);
       console.log(`
 ✅ ${scraper.name.toUpperCase()} terminé en ${duration}s
-   Cinémas  : ${result.cinemas.length} scrapés (${stats.cinemasCreated} créés, ${stats.cinemasUpdated} màj)
+   Cinémas  : ${stats.cinemasCreated + stats.cinemasUpdated} scrapés (${stats.cinemasCreated} créés, ${stats.cinemasUpdated} màj)
    Films    : ${filmCount} trouvés (${stats.filmsCreated} créés, ${stats.filmsUpdated} màj)
    Séances  : ${seanceCount} trouvées (${stats.seancesCreated} créées, ${stats.seancesUpdated} màj)
    Erreurs  : ${result.errors.length}

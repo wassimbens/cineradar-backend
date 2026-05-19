@@ -120,10 +120,10 @@ async function start() {
     if (secret !== process.env["ADMIN_SECRET"]) {
       return reply.code(401).send({ error: "Non autorisé" });
     }
-    spawn("node", ["dist/scripts/auto-fix-posters.js", "--all"], {
+    spawn("node", ["dist/scripts/auto-fix-posters.js"], {
       cwd: process.cwd(), shell: true, stdio: "inherit",
     });
-    return { message: "Fix affiches (--all) lancé en arrière-plan" };
+    return { message: "Fix affiches (affiches manquantes/cassées) lancé en arrière-plan" };
   });
 
   // Routes métier

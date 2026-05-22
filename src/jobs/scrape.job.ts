@@ -206,26 +206,26 @@ export function registerScrapeJob(): void {
 
   cron.schedule(
     httpCron,
-    async () => {
-      console.log("[CRON] Déclenchement du job HTTP (UGC, AlloCiné, Pathé, MK2)…");
-      try {
-        await runAllScrapers();
-      } catch (err) {
-        console.error("[CRON] Erreur fatale non catchée :", err);
-      }
+    () => {
+      console.log("[CRON] Déclenchement du job HTTP (UGC, AlloCiné, Pathé, MK2) — processes isolés…");
+      const child = spawn("node", ["dist/scripts/run-scraper.js"], {
+        cwd: process.cwd(), shell: true, stdio: "inherit",
+      });
+      child.on("error", (err) => console.error("[CRON HTTP] Erreur :", err.message));
+      child.on("close", (code) => console.log(`[CRON HTTP] Terminé (code ${code})`));
     },
     { timezone: "Europe/Paris" }
   );
 
   cron.schedule(
     cgrCron,
-    async () => {
+    () => {
       console.log("[CRON] Déclenchement du job CGR (Playwright)…");
-      try {
-        await runCgrScraper();
-      } catch (err) {
-        console.error("[CRON] Erreur fatale non catchée (CGR) :", err);
-      }
+      const child = spawn("node", ["dist/scripts/run-scraper.js", "cgr"], {
+        cwd: process.cwd(), shell: true, stdio: "inherit",
+      });
+      child.on("error", (err) => console.error("[CRON CGR] Erreur :", err.message));
+      child.on("close", (code) => console.log(`[CRON CGR] Terminé (code ${code})`));
     },
     { timezone: "Europe/Paris" }
   );

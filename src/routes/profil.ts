@@ -776,7 +776,7 @@ const profilRoutes: FastifyPluginAsync = async (fastify) => {
 
       scored.sort((a, b) => b.score - a.score || (b.imdbNote ?? 0) - (a.imdbNote ?? 0));
 
-      return reply.send(scored.slice(0, 20));
+      return reply.send(scored.slice(0, 21));
     }
   );
 

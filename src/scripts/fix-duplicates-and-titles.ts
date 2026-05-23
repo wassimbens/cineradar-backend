@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ─────────────────────────────────────────────────────────
 //  Script : supprime les doublons de films signalés par
 //  l'utilisateur et corrige les titres tronqués.

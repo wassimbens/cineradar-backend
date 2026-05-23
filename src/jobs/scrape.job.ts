@@ -194,8 +194,9 @@ function runPostScrapeJobs(): void {
  *   - 09:00 → scraper CGR (Playwright) isolé pour éviter l'OOM
  */
 export function registerScrapeJob(): void {
-  const httpCron = process.env["SCRAPE_CRON"]     ?? "0 6 * * *";
-  const cgrCron  = process.env["SCRAPE_CRON_CGR"] ?? "0 9 * * *";
+  // Hardcodé "tous les jours" — la var d'env SCRAPE_CRON peut être mal configurée
+  const httpCron = "0 6 * * *";
+  const cgrCron  = "0 9 * * *";
 
   if (!cron.validate(httpCron)) {
     throw new Error(`Expression cron invalide : "${httpCron}" (SCRAPE_CRON)`);

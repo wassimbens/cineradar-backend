@@ -753,7 +753,9 @@ export class UgcScraper extends BaseScraper {
           ? `${cleanHref}?cinemaId=${cinemaId}`
           : `${BASE_URL}/${cleanHref.replace(/^\//, "")}?cinemaId=${cinemaId}`;
         try {
-          await page.goto(filmPageUrl, { waitUntil: "networkidle", timeout: 45_000 });
+          await page.goto(filmPageUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+          // Attendre seulement le déclenchement du POST automatique (1s max)
+          await page.waitForResponse((r) => r.url().includes("getShowingsByFilm"), { timeout: 5_000 }).catch(() => {});
         } catch (err) {
           this.log(`    ⚠️ Timeout page film ${filmId}: ${err}`, "warn");
           // Continuer quand même — on a peut-être capté le POST avant le timeout

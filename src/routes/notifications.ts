@@ -138,6 +138,11 @@ const notifRoutes: FastifyPluginAsync = async (fastify) => {
     });
     if (!user) return reply.status(404).send({ error: "Utilisateur introuvable" });
 
+    // Vérifier le statut Pro
+    const isPro = user.isPremium && (!user.premiumUntil || user.premiumUntil > new Date());
+    // Limite : 3 notifications "film en salle" pour les non-Pro (comme les alertes email)
+    const FREE_LIMIT = 3;
+
     const filmsEnSalle = [
       ...user.filmsFavoris.map((f) => ({ film: f.film, source: "favori" as const })),
       ...user.watchlist.map((w)    => ({ film: w.film,  source: "watchlist" as const })),
@@ -147,7 +152,17 @@ const notifRoutes: FastifyPluginAsync = async (fastify) => {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     let created = 0;
 
+    // Pour les non-Pro : compter les notifs film_en_salle déjà envoyées au total
+    let totalFilmEnSalleNotifs = 0;
+    if (!isPro) {
+      totalFilmEnSalleNotifs = await prisma.notification.count({
+        where: { userId: auth.userId, type: "film_en_salle" },
+      });
+    }
+
     for (const { film, source } of filmsEnSalle) {
+      // Limite freemium atteinte
+      if (!isPro && totalFilmEnSalleNotifs + created >= FREE_LIMIT) break;
       const exists = await prisma.notification.findFirst({
         where: {
           userId:    auth.userId,

@@ -122,7 +122,8 @@ function extractShowtimesDeep(obj: unknown, depth = 0): Array<Record<string, unk
     (typeof o["startDate"]  === "string" && o["startDate"].length  > 5) ||
     (typeof o["startsAt"]   === "string" && o["startsAt"].length   > 5) ||
     (typeof o["datetime"]   === "string" && o["datetime"].length   > 5) ||
-    (typeof o["dateHeure"]  === "string" && o["dateHeure"].length  > 5);
+    (typeof o["dateHeure"]  === "string" && o["dateHeure"].length  > 5) ||
+    (typeof o["showTime"]   === "string" && o["showTime"].length   > 5);   // MK2 : capital T
   if (hasDate) results.push(o);
   for (const key of ["showtimes", "screenings", "sessions", "seances", "data", "results",
                       "items", "movies", "films", "program", "programme", "schedule",
@@ -139,6 +140,116 @@ function extractShowtimesDeep(obj: unknown, depth = 0): Array<Record<string, unk
   return results;
 }
 
+// ── Extraction directe MK2 ─────────────────────────────────
+// Structure réelle : pageProps.cinemaComplexWithSession
+//   .sessionsByType[].sessionsByFilmAndCinema[]
+//     .film   { id, title, graphicUrl, runTime (minutes), genres[], … }
+//     .sessions[] { id, showTime: "2026-05-25T20:45:00", attributes[{ id, … }], … }
+//
+// Les attributs de version ont un id commençant par "VS" (ex: "VS_VO", "VS_VOST").
+// Les attributs de format ont isUsedForConcepts === true (ex: "Dolby Atmos", "3D").
+
+interface Mk2Session {
+  id: string;
+  showTime: string;
+  attributes?: Array<{
+    id?: string;
+    shortName?: string;   // "VF", "VO", "STFR"
+    description?: string; // "Version Française", "Version Originale", "2D"
+    isUsedForConcepts?: boolean;
+  }>;
+  screenName?: string;
+}
+
+interface Mk2FilmGroup {
+  film: {
+    id?: string;
+    title?: string;
+    originalTitle?: string;
+    graphicUrl?: string;
+    synopsis?: string;
+    runTime?: number;        // minutes
+    genres?: Array<{ name?: string }>;
+    directors?: Array<{ firstName?: string; lastName?: string; name?: string }>;
+  };
+  sessions: Mk2Session[];
+}
+
+function extractMk2Sessions(pageProps: unknown): Mk2FilmGroup[] {
+  if (!pageProps || typeof pageProps !== "object") return [];
+  const pp = pageProps as Record<string, unknown>;
+
+  // Chemin principal
+  const cwSession = pp["cinemaComplexWithSession"] as Record<string, unknown> | undefined;
+  if (!cwSession) return [];
+
+  const sessionsByType = cwSession["sessionsByType"] as Array<Record<string, unknown>> | undefined;
+  if (!Array.isArray(sessionsByType)) return [];
+
+  const groups: Mk2FilmGroup[] = [];
+
+  for (const type of sessionsByType) {
+    const byFilm = type["sessionsByFilmAndCinema"] as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(byFilm)) continue;
+
+    for (const entry of byFilm) {
+      const film = entry["film"] as Mk2FilmGroup["film"] | undefined;
+      const sessions = entry["sessions"] as Mk2Session[] | undefined;
+      if (!film?.title || !Array.isArray(sessions) || sessions.length === 0) continue;
+
+      // Dédoublonner par film.id (même film peut apparaître dans plusieurs types)
+      const existing = groups.find(g => g.film.id === film.id && g.film.title === film.title);
+      if (existing) {
+        for (const s of sessions) {
+          if (!existing.sessions.find(es => es.id === s.id)) existing.sessions.push(s);
+        }
+      } else {
+        groups.push({ film, sessions: [...sessions] });
+      }
+    }
+  }
+
+  return groups;
+}
+
+function mk2SessionToSeance(session: Mk2Session): { dateHeure: Date; version: Version; format: string } | null {
+  if (!session.showTime) return null;
+  const dt = new Date(session.showTime);
+  if (isNaN(dt.getTime())) return null;
+
+  let version: Version = Version.VF;
+  let format = "2D";
+
+  for (const attr of session.attributes ?? []) {
+    const attrId   = (attr.id          ?? "").toUpperCase();
+    const shortN   = (attr.shortName   ?? "").toUpperCase();  // "VF", "VO", "STFR"
+    const descr    = (attr.description ?? "").toUpperCase();  // "Version Française", "2D"
+
+    // Version : ids commençant par "VS" (ex: VS00000005=VF, VS00000006=VO)
+    if (attrId.startsWith("VS")) {
+      if (shortN.includes("VOST") || shortN.includes("STFR") || shortN.includes("SUBTI")
+          || descr.includes("VOST") || descr.includes("SOUS-TITR") || descr.includes("SUBTITL")) {
+        version = Version.VOSTFR;
+      } else if (shortN === "VO" || shortN.startsWith("VO")
+                 || descr.includes("VERSION ORIGIN") || descr.includes("ORIGINAL")) {
+        version = Version.VO;
+      }
+      // VS00000005 / shortN="VF" → reste VF
+    }
+
+    // Format : attributs "concept" (3D, Dolby, IMAX…)
+    if (attr.isUsedForConcepts) {
+      const label = (shortN + " " + descr);
+      if (label.includes("IMAX"))  format = "IMAX";
+      else if (label.includes("DOLBY")) format = "Dolby Atmos";
+      else if (label.includes("3D"))    format = "3D";
+      else if (label.includes("LASER")) format = "Laser";
+    }
+  }
+
+  return { dateHeure: dt, version, format };
+}
+
 // ── Scraper ───────────────────────────────────────────────
 
 export class Mk2Scraper extends BaseScraper {
@@ -151,25 +262,25 @@ export class Mk2Scraper extends BaseScraper {
 
   private async fetchViaHttp(slug: string): Promise<{
     buildId: string | null;
-    data: Array<Record<string, unknown>>;
+    groups: Mk2FilmGroup[];
     html: string;
   }> {
     const url = `${BASE_URL}/salle/${slug}`;
     const res = await fetchWithRetry(url, { headers: HEADERS });
-    if (!res || !res.ok) return { buildId: null, data: [], html: "" };
+    if (!res || !res.ok) return { buildId: null, groups: [], html: "" };
 
     const html = await res.text();
     const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([^<]+)<\/script>/);
-    if (!match) return { buildId: null, data: [], html };
+    if (!match) return { buildId: null, groups: [], html };
 
     try {
-      const nextData = JSON.parse(match[1]) as Record<string, unknown>;
-      const buildId  = (nextData["buildId"] as string) ?? null;
+      const nextData  = JSON.parse(match[1]) as Record<string, unknown>;
+      const buildId   = (nextData["buildId"] as string) ?? null;
       const pageProps = (nextData["props"] as Record<string, unknown>)?.["pageProps"] as unknown;
-      const data = extractShowtimesDeep(pageProps);
-      return { buildId, data, html };
+      const groups    = extractMk2Sessions(pageProps);
+      return { buildId, groups, html };
     } catch {
-      return { buildId: null, data: [], html };
+      return { buildId: null, groups: [], html };
     }
   }
 
@@ -177,15 +288,15 @@ export class Mk2Scraper extends BaseScraper {
     slug: string,
     buildId: string,
     dateStr: string
-  ): Promise<Array<Record<string, unknown>>> {
+  ): Promise<Mk2FilmGroup[]> {
     // MK2 stocke ses pages sous /salle/{slug}
     const url = `${BASE_URL}/_next/data/${buildId}/salle/${slug}.json?date=${dateStr}&slug=${slug}`;
     const res = await fetchWithRetry(url, { headers: JSON_HEADERS });
     if (!res || !res.ok) return [];
     try {
-      const json = await res.json() as Record<string, unknown>;
+      const json      = await res.json() as Record<string, unknown>;
       const pageProps = (json["pageProps"] as unknown) ?? json;
-      return extractShowtimesDeep(pageProps);
+      return extractMk2Sessions(pageProps);
     } catch { return []; }
   }
 
@@ -236,9 +347,57 @@ export class Mk2Scraper extends BaseScraper {
     return Array.from(filmMap.values()).filter((r) => r.seances.length > 0);
   }
 
-  // ── Regroupement JSON brut → films+séances ────────────
+  // ── Conversion Mk2FilmGroup[] → ScrapedFilm+séances ──────
 
-  private groupShowtimes(
+  private convertGroups(
+    groups: Mk2FilmGroup[],
+    today: Date,
+    horizon: Date
+  ): Array<{ film: Partial<ScrapedFilm>; seances: ScrapedSeance[] }> {
+    const map = new Map<string, { film: Partial<ScrapedFilm>; seances: ScrapedSeance[] }>();
+
+    for (const g of groups) {
+      const titre = g.film.title;
+      if (!titre || titre.length < 2) continue;
+
+      if (!map.has(titre)) {
+        const dirs    = g.film.directors ?? [];
+        const dir     = dirs[0];
+        const genres  = (g.film.genres ?? []).map(ge => ge.name ?? "").filter(Boolean);
+        map.set(titre, {
+          film: {
+            titre,
+            titreOriginal: g.film.originalTitle !== titre ? g.film.originalTitle : undefined,
+            affiche:       g.film.graphicUrl,
+            synopsis:      g.film.synopsis,
+            duree:         typeof g.film.runTime === "number" ? g.film.runTime : undefined,
+            genres,
+            realisateur:   dir
+              ? `${dir.firstName ?? ""} ${dir.lastName ?? dir.name ?? ""}`.trim()
+              : undefined,
+          },
+          seances: [],
+        });
+      }
+
+      const entry = map.get(titre)!;
+      for (const session of g.sessions) {
+        const seance = mk2SessionToSeance(session);
+        if (!seance) continue;
+        if (seance.dateHeure < today || seance.dateHeure > horizon) continue;
+        const key = seance.dateHeure.toISOString();
+        if (!entry.seances.find(s => s.dateHeure.toISOString() === key)) {
+          entry.seances.push(seance);
+        }
+      }
+    }
+
+    return Array.from(map.values()).filter(r => r.seances.length > 0);
+  }
+
+  // ── Regroupement JSON brut (fallback Playwright) ──────────
+
+  private groupShowtimesRaw(
     rawItems: Array<Record<string, unknown>>,
     today: Date,
     horizon: Date
@@ -250,7 +409,9 @@ export class Mk2Scraper extends BaseScraper {
       const titre  = (movie?.["title"] ?? movie?.["name"] ?? st["movieTitle"] ?? st["filmTitle"]) as string | undefined;
       if (!titre || titre.length < 2) continue;
 
-      const dtStr = (st["startDate"] ?? st["startsAt"] ?? st["datetime"] ?? st["dateHeure"]) as string | undefined;
+      const dtStr = (
+        st["showTime"] ?? st["startDate"] ?? st["startsAt"] ?? st["datetime"] ?? st["dateHeure"]
+      ) as string | undefined;
       if (!dtStr) continue;
       const dt = new Date(dtStr);
       if (isNaN(dt.getTime()) || dt < today || dt > horizon) continue;
@@ -363,8 +524,8 @@ export class Mk2Scraper extends BaseScraper {
 
     // ── 1. HTTP + __NEXT_DATA__ ───────────────────────
     this.log(`    📡 HTTP fetch pour ${cinema.slug}…`);
-    const { buildId, data: day0Data, html } = await this.fetchViaHttp(cinema.slug);
-    let allData: Array<Record<string, unknown>> = [...day0Data];
+    const { buildId, groups: day0Groups, html } = await this.fetchViaHttp(cinema.slug);
+    const allGroups: Mk2FilmGroup[] = [...day0Groups];
 
     if (buildId) {
       this.log(`    🔑 buildId: ${buildId.slice(0, 12)}…`);
@@ -373,14 +534,27 @@ export class Mk2Scraper extends BaseScraper {
         date.setDate(today.getDate() + day);
         const dateStr = toDateStr(date);
         await sleep(150);
-        const dayData = await this.fetchDayViaNextData(cinema.slug, buildId, dateStr);
-        allData.push(...dayData);
-        if (day % 5 === 0) this.log(`    📅 J+${day} — ${allData.length} séances accumulées`);
+        const dayGroups = await this.fetchDayViaNextData(cinema.slug, buildId, dateStr);
+        // Fusionner : même film → ajouter les sessions manquantes
+        for (const g of dayGroups) {
+          const existing = allGroups.find(e => e.film.id === g.film.id && e.film.title === g.film.title);
+          if (existing) {
+            for (const s of g.sessions) {
+              if (!existing.sessions.find(es => es.id === s.id)) existing.sessions.push(s);
+            }
+          } else {
+            allGroups.push(g);
+          }
+        }
+        if (day % 5 === 0) {
+          const total = allGroups.reduce((a, g) => a + g.sessions.length, 0);
+          this.log(`    📅 J+${day} — ${total} séances accumulées`);
+        }
       }
     }
 
-    if (allData.length > 0) {
-      const result = this.groupShowtimes(allData, today, horizon);
+    if (allGroups.length > 0) {
+      const result = this.convertGroups(allGroups, today, horizon);
       if (result.length > 0) return result;
     }
 
@@ -394,7 +568,7 @@ export class Mk2Scraper extends BaseScraper {
     // ── 3. Playwright (dernier recours) ───────────────
     this.log(`    🤖 Playwright (fallback) pour ${cinema.slug}…`);
     const pwData = await this.fetchViaPlaywright(cinema.slug, today, horizon);
-    if (pwData.length > 0) return this.groupShowtimes(pwData, today, horizon);
+    if (pwData.length > 0) return this.groupShowtimesRaw(pwData, today, horizon);
 
     return [];
   }

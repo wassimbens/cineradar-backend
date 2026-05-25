@@ -1,25 +1,35 @@
 // ─────────────────────────────────────────────────────────
-//  Scraper Pathé — pathe.fr  (refonte complète)
+//  Scraper Pathé — pathe.fr  (refonte API)
 //
-//  Stratégie :
-//    1. Fetch HTTP direct + extraction __NEXT_DATA__ (Next.js SSR)
-//    2. Pour J+1…J+29 : _next/data/{buildId}/cinemas/{slug}.json
-//    3. Parser récursif robuste sur la structure pageProps
-//    4. Fallback Playwright (stealth) si HTTP bloqué
+//  DIAGNOSTIC (mai 2026) :
+//    - pathe.fr est une SPA Angular (PAS Next.js) → pas de __NEXT_DATA__
+//    - Les pages HTML sont bloquées par Akamai Bot Manager côté IP serveur
+//    - Même Playwright stealth est détecté et bloqué
 //
-//  Améliorations vs v1 :
-//    - Pas de Playwright pour le cas nominal → 10× plus rapide
-//    - Retry 429/503 avec back-off exponentiel
-//    - Meilleure liste de cinémas (27 établissements)
-//    - Détection VF/VOST/VO et format améliorée
-//    - Timezone Europe/Paris stricte
+//  Stratégie retenue : REST API publique (non documentée mais accessible)
+//    GET /api/cinemas?language=fr
+//      → liste de tous les cinémas avec vistaRef et slug
+//    GET /api/shows?cinema={slug}&date={YYYY-MM-DD}&language=fr
+//      → liste des films à l'affiche avec métadonnées (titre, durée, affiche…)
+//        mais PAS les créneaux horaires individuels
+//    GET /api/cinema/{slug}/shows?date={YYYY-MM-DD}&language=fr
+//      → par film-slug : versions disponibles ce jour-là
+//        mais toujours PAS les horaires HH:MM
+//
+//  LIMITATION CONNUE : les horaires précis (HH:MM) ne sont pas exposés via
+//  ces endpoints REST. L'Angular app les récupère en interne via des appels
+//  à un proxy Vista (système de billetterie) qui requiert un token de session.
+//  Sans accès aux pages HTML (bloquées Akamai), il est impossible d'obtenir
+//  ce token côté serveur.
+//
+//  Ce scraper retourne donc les films à l'affiche avec leur version (VF/VO/VOSTFR)
+//  mais sans les créneaux horaires individuels.
+//  Pour les séances complètes, il faudra soit :
+//    (a) un proxy résidentiel pour contourner Akamai, ou
+//    (b) un accès à l'API Vista avec token.
 // ─────────────────────────────────────────────────────────
 
-// @ts-ignore
-import { chromium } from "playwright-extra";
-// @ts-ignore
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
-import type { Browser, BrowserContext } from "playwright";
+import { chromium, Browser, BrowserContext } from "playwright";
 import { Version } from "@prisma/client";
 import { BaseScraper } from "./base.scraper.js";
 import { CHROMIUM_ARGS } from "./chromium-args.js";
@@ -31,17 +41,16 @@ import {
   ScrapedCinemaFilm,
 } from "./types.js";
 
-(chromium as { use: (p: unknown) => void }).use(StealthPlugin());
-
 const BASE_URL  = "https://www.pathe.fr";
-const DAYS_AHEAD = 30;
+const API_BASE  = `${BASE_URL}/api`;
+const DAYS_AHEAD = 14;  // réduit car les horaires précis ne sont pas dispo
 
 const HEADERS = {
   "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-  "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
-  "Accept-Encoding": "gzip, deflate, br",
-  "Cache-Control":   "no-cache",
+  "Accept":          "application/json, */*;q=0.8",
+  "Accept-Language": "fr-FR,fr;q=0.9",
+  "Origin":          BASE_URL,
+  "Referer":         BASE_URL + "/",
 };
 
 const JSON_HEADERS = {

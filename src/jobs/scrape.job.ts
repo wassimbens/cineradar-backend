@@ -195,8 +195,8 @@ function runPostScrapeJobs(): void {
  */
 export function registerScrapeJob(): void {
   // Hardcodé "tous les jours" — la var d'env SCRAPE_CRON peut être mal configurée
-  const httpCron = "0 6 * * *";
-  const cgrCron  = "0 9 * * *";
+  const httpCron = "0 11 * * *";
+  const cgrCron  = "0 14 * * *";
 
   if (!cron.validate(httpCron)) {
     throw new Error(`Expression cron invalide : "${httpCron}" (SCRAPE_CRON)`);

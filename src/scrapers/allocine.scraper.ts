@@ -35,15 +35,15 @@ import {
 
 // ── Config ────────────────────────────────────────────────
 
-const DAYS_AHEAD       = 14;   // 2 semaines suffisent (était 30)
-const MAX_CINEMAS      = 2000;
-const PAGE_WORKERS     = 3;    // réduit pour moins stresser Cloudflare
-const MAX_VILLE_PAGES  = 800;
+const DAYS_AHEAD       = 7;    // 1 semaine (réduit de 14 pour limiter les requêtes)
+const MAX_CINEMAS      = 1500; // réduit de 2000 (couvre l'essentiel du territoire)
+const PAGE_WORKERS     = 2;    // réduit de 3 pour moins se faire rate-limiter
+const MAX_VILLE_PAGES  = 600;  // réduit de 800
 
 /** Délai de base entre deux jours d'un même cinéma (ms) */
-const DELAY_BETWEEN_DATES_MS = 600;     // réduit de 1 500 → 600 ms
+const DELAY_BETWEEN_DATES_MS = 800;     // augmenté de 600 → 800 ms
 /** Délai de base entre deux cinémas (ms) */
-const DELAY_BETWEEN_CINEMAS_MS = 2_000; // réduit de 5 000 → 2 000 ms
+const DELAY_BETWEEN_CINEMAS_MS = 3_000; // augmenté de 2 000 → 3 000 ms
 /** Backoff initial sur un 429 (ms) — multiplie par 2 à chaque retry */
 const BACKOFF_429_BASE_MS = 30_000;   // 30 s
 /** Nombre max de retries par requête sur 429 */

@@ -35,7 +35,7 @@ import {
 
 // ── Config ────────────────────────────────────────────────
 
-const DAYS_AHEAD       = 7;    // 1 semaine (réduit de 14 pour limiter les requêtes)
+const DAYS_AHEAD       = 14;   // 2 semaines (nécessaire pour les alertes)
 const MAX_CINEMAS      = 1500; // réduit de 2000 (couvre l'essentiel du territoire)
 const PAGE_WORKERS     = 2;    // réduit de 3 pour moins se faire rate-limiter
 const MAX_VILLE_PAGES  = 600;  // réduit de 800

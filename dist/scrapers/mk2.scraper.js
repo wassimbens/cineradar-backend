@@ -4,7 +4,7 @@
 //
 //  Stratégie (mêmes principes que le scraper UGC amélioré) :
 //    1. Fetch HTTP direct + extraction __NEXT_DATA__ (Next.js SSR)
-//    2. Pour J+1…J+29 : _next/data/{buildId}/nos-salles/{slug}.json
+//    2. Pour J+1…J+29 : _next/data/{buildId}/salle/{slug}.json
 //    3. Fallback JSON-LD ScreeningEvent (cheerio)
 //    4. Fallback Playwright si les deux premiers échouent
 //
@@ -54,6 +54,7 @@ const playwright_1 = require("playwright");
 const cheerio = __importStar(require("cheerio"));
 const client_1 = require("@prisma/client");
 const base_scraper_js_1 = require("./base.scraper.js");
+const chromium_args_js_1 = require("./chromium-args.js");
 const BASE_URL = "https://www.mk2.com";
 const DAYS_AHEAD = 30;
 const HEADERS = {
@@ -69,17 +70,18 @@ const JSON_HEADERS = {
     "x-nextjs-data": "1",
 };
 // ── Cinémas MK2 ───────────────────────────────────────────
+// Source : https://www.mk2.com/sitemap.xml (slugs vérifiés)
+// Le site utilise /salle/{slug} depuis 2024 (ancien : /nos-salles/)
+// Bastille, Odéon et Quai de Seine/Loire ont été fusionnés en une seule page
 const MK2_CINEMAS = [
     { slug: "mk2-bibliotheque", nom: "MK2 Bibliothèque", adresse: "128-162 Av de France", ville: "Paris", cp: "75013", lat: 48.8318, lng: 2.3799 },
-    { slug: "mk2-bastille", nom: "MK2 Bastille (côté Port)", adresse: "14 Bd de la Bastille", ville: "Paris", cp: "75012", lat: 48.8499, lng: 2.3658 },
-    { slug: "mk2-bastille-boulevard", nom: "MK2 Bastille (côté Bd)", adresse: "4 Bd Richard Lenoir", ville: "Paris", cp: "75011", lat: 48.8502, lng: 2.3672 },
+    { slug: "mk2-bastille-beaumarchais-fg-st-antoine", nom: "MK2 Bastille", adresse: "4 Bd Beaumarchais", ville: "Paris", cp: "75011", lat: 48.8533, lng: 2.3695 },
     { slug: "mk2-beaubourg", nom: "MK2 Beaubourg", adresse: "50 Rue Rambuteau", ville: "Paris", cp: "75003", lat: 48.8609, lng: 2.3518 },
     { slug: "mk2-nation", nom: "MK2 Nation", adresse: "133 Bd Diderot", ville: "Paris", cp: "75012", lat: 48.8487, lng: 2.3943 },
-    { slug: "mk2-odeon-cote-seine", nom: "MK2 Odéon (côté Seine)", adresse: "10 Rue de l'École de Médecine", ville: "Paris", cp: "75006", lat: 48.8510, lng: 2.3427 },
-    { slug: "mk2-odeon-saint-germain", nom: "MK2 Odéon (St-Germain)", adresse: "9 Rue de l'École de Médecine", ville: "Paris", cp: "75006", lat: 48.8512, lng: 2.3425 },
+    { slug: "mk2-odeon-st-germain-st-michel", nom: "MK2 Odéon", adresse: "113 Bd Saint-Germain", ville: "Paris", cp: "75006", lat: 48.8511, lng: 2.3414 },
     { slug: "mk2-parnasse", nom: "MK2 Parnasse", adresse: "94 Rue du Maine", ville: "Paris", cp: "75014", lat: 48.8381, lng: 2.3233 },
-    { slug: "mk2-quai-de-seine", nom: "MK2 Quai de Seine", adresse: "14 Quai de la Seine", ville: "Paris", cp: "75019", lat: 48.8833, lng: 2.3647 },
-    { slug: "mk2-quai-de-loire", nom: "MK2 Quai de Loire", adresse: "7 Quai de Loire", ville: "Paris", cp: "75019", lat: 48.8839, lng: 2.3641 },
+    { slug: "mk2-quai-seine-quai-loire", nom: "MK2 Quai de Seine/Loire", adresse: "14 Quai de la Seine", ville: "Paris", cp: "75019", lat: 48.8836, lng: 2.3644 },
+    { slug: "mk2-gambetta", nom: "MK2 Gambetta", adresse: "6 Rue Belgrand", ville: "Paris", cp: "75020", lat: 48.8655, lng: 2.3988 },
 ];
 // ── Helpers ───────────────────────────────────────────────
 function parseVersion(raw) {
@@ -147,7 +149,8 @@ function extractShowtimesDeep(obj, depth = 0) {
     const hasDate = (typeof o["startDate"] === "string" && o["startDate"].length > 5) ||
         (typeof o["startsAt"] === "string" && o["startsAt"].length > 5) ||
         (typeof o["datetime"] === "string" && o["datetime"].length > 5) ||
-        (typeof o["dateHeure"] === "string" && o["dateHeure"].length > 5);
+        (typeof o["dateHeure"] === "string" && o["dateHeure"].length > 5) ||
+        (typeof o["showTime"] === "string" && o["showTime"].length > 5); // MK2 : capital T
     if (hasDate)
         results.push(o);
     for (const key of ["showtimes", "screenings", "sessions", "seances", "data", "results",
@@ -165,6 +168,81 @@ function extractShowtimesDeep(obj, depth = 0) {
     }
     return results;
 }
+function extractMk2Sessions(pageProps) {
+    if (!pageProps || typeof pageProps !== "object")
+        return [];
+    const pp = pageProps;
+    // Chemin principal
+    const cwSession = pp["cinemaComplexWithSession"];
+    if (!cwSession)
+        return [];
+    const sessionsByType = cwSession["sessionsByType"];
+    if (!Array.isArray(sessionsByType))
+        return [];
+    const groups = [];
+    for (const type of sessionsByType) {
+        const byFilm = type["sessionsByFilmAndCinema"];
+        if (!Array.isArray(byFilm))
+            continue;
+        for (const entry of byFilm) {
+            const film = entry["film"];
+            const sessions = entry["sessions"];
+            if (!film?.title || !Array.isArray(sessions) || sessions.length === 0)
+                continue;
+            // Dédoublonner par film.id (même film peut apparaître dans plusieurs types)
+            const existing = groups.find(g => g.film.id === film.id && g.film.title === film.title);
+            if (existing) {
+                for (const s of sessions) {
+                    if (!existing.sessions.find(es => es.id === s.id))
+                        existing.sessions.push(s);
+                }
+            }
+            else {
+                groups.push({ film, sessions: [...sessions] });
+            }
+        }
+    }
+    return groups;
+}
+function mk2SessionToSeance(session) {
+    if (!session.showTime)
+        return null;
+    const dt = new Date(session.showTime);
+    if (isNaN(dt.getTime()))
+        return null;
+    let version = client_1.Version.VF;
+    let format = "2D";
+    for (const attr of session.attributes ?? []) {
+        const attrId = (attr.id ?? "").toUpperCase();
+        const shortN = (attr.shortName ?? "").toUpperCase(); // "VF", "VO", "STFR"
+        const descr = (attr.description ?? "").toUpperCase(); // "Version Française", "2D"
+        // Version : ids commençant par "VS" (ex: VS00000005=VF, VS00000006=VO)
+        if (attrId.startsWith("VS")) {
+            if (shortN.includes("VOST") || shortN.includes("STFR") || shortN.includes("SUBTI")
+                || descr.includes("VOST") || descr.includes("SOUS-TITR") || descr.includes("SUBTITL")) {
+                version = client_1.Version.VOSTFR;
+            }
+            else if (shortN === "VO" || shortN.startsWith("VO")
+                || descr.includes("VERSION ORIGIN") || descr.includes("ORIGINAL")) {
+                version = client_1.Version.VO;
+            }
+            // VS00000005 / shortN="VF" → reste VF
+        }
+        // Format : attributs "concept" (3D, Dolby, IMAX…)
+        if (attr.isUsedForConcepts) {
+            const label = (shortN + " " + descr);
+            if (label.includes("IMAX"))
+                format = "IMAX";
+            else if (label.includes("DOLBY"))
+                format = "Dolby Atmos";
+            else if (label.includes("3D"))
+                format = "3D";
+            else if (label.includes("LASER"))
+                format = "Laser";
+        }
+    }
+    return { dateHeure: dt, version, format };
+}
 // ── Scraper ───────────────────────────────────────────────
 class Mk2Scraper extends base_scraper_js_1.BaseScraper {
     name = "mk2";
@@ -172,35 +250,35 @@ class Mk2Scraper extends base_scraper_js_1.BaseScraper {
     context = null;
     // ── Méthode 1 : HTTP + __NEXT_DATA__ ─────────────────
     async fetchViaHttp(slug) {
-        const url = `${BASE_URL}/nos-salles/${slug}`;
+        const url = `${BASE_URL}/salle/${slug}`;
         const res = await fetchWithRetry(url, { headers: HEADERS });
         if (!res || !res.ok)
-            return { buildId: null, data: [], html: "" };
+            return { buildId: null, groups: [], html: "" };
         const html = await res.text();
         const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([^<]+)<\/script>/);
         if (!match)
-            return { buildId: null, data: [], html };
+            return { buildId: null, groups: [], html };
         try {
             const nextData = JSON.parse(match[1]);
             const buildId = nextData["buildId"] ?? null;
             const pageProps = nextData["props"]?.["pageProps"];
-            const data = extractShowtimesDeep(pageProps);
-            return { buildId, data, html };
+            const groups = extractMk2Sessions(pageProps);
+            return { buildId, groups, html };
         }
         catch {
-            return { buildId: null, data: [], html };
+            return { buildId: null, groups: [], html };
         }
     }
     async fetchDayViaNextData(slug, buildId, dateStr) {
-        // MK2 stocke ses pages sous /nos-salles/{slug}
-        const url = `${BASE_URL}/_next/data/${buildId}/nos-salles/${slug}.json?date=${dateStr}&slug=${slug}`;
+        // MK2 stocke ses pages sous /salle/{slug}
+        const url = `${BASE_URL}/_next/data/${buildId}/salle/${slug}.json?date=${dateStr}&slug=${slug}`;
         const res = await fetchWithRetry(url, { headers: JSON_HEADERS });
         if (!res || !res.ok)
             return [];
         try {
             const json = await res.json();
             const pageProps = json["pageProps"] ?? json;
-            return extractShowtimesDeep(pageProps);
+            return extractMk2Sessions(pageProps);
         }
         catch {
             return [];
@@ -251,15 +329,56 @@ class Mk2Scraper extends base_scraper_js_1.BaseScraper {
         });
         return Array.from(filmMap.values()).filter((r) => r.seances.length > 0);
     }
-    // ── Regroupement JSON brut → films+séances ────────────
-    groupShowtimes(rawItems, today, horizon) {
+    // ── Conversion Mk2FilmGroup[] → ScrapedFilm+séances ──────
+    convertGroups(groups, today, horizon) {
+        const map = new Map();
+        for (const g of groups) {
+            const titre = g.film.title;
+            if (!titre || titre.length < 2)
+                continue;
+            if (!map.has(titre)) {
+                const dirs = g.film.directors ?? [];
+                const dir = dirs[0];
+                const genres = (g.film.genres ?? []).map(ge => ge.name ?? "").filter(Boolean);
+                map.set(titre, {
+                    film: {
+                        titre,
+                        titreOriginal: g.film.originalTitle !== titre ? g.film.originalTitle : undefined,
+                        affiche: g.film.graphicUrl,
+                        synopsis: g.film.synopsis,
+                        duree: typeof g.film.runTime === "number" ? g.film.runTime : undefined,
+                        genres,
+                        realisateur: dir
+                            ? `${dir.firstName ?? ""} ${dir.lastName ?? dir.name ?? ""}`.trim()
+                            : undefined,
+                    },
+                    seances: [],
+                });
+            }
+            const entry = map.get(titre);
+            for (const session of g.sessions) {
+                const seance = mk2SessionToSeance(session);
+                if (!seance)
+                    continue;
+                if (seance.dateHeure < today || seance.dateHeure > horizon)
+                    continue;
+                const key = seance.dateHeure.toISOString();
+                if (!entry.seances.find(s => s.dateHeure.toISOString() === key)) {
+                    entry.seances.push(seance);
+                }
+            }
+        }
+        return Array.from(map.values()).filter(r => r.seances.length > 0);
+    }
+    // ── Regroupement JSON brut (fallback Playwright) ──────────
+    groupShowtimesRaw(rawItems, today, horizon) {
         const map = new Map();
         for (const st of rawItems) {
             const movie = (st["movie"] ?? st["film"] ?? st["workPresented"]);
             const titre = (movie?.["title"] ?? movie?.["name"] ?? st["movieTitle"] ?? st["filmTitle"]);
             if (!titre || titre.length < 2)
                 continue;
-            const dtStr = (st["startDate"] ?? st["startsAt"] ?? st["datetime"] ?? st["dateHeure"]);
+            const dtStr = (st["showTime"] ?? st["startDate"] ?? st["startsAt"] ?? st["datetime"] ?? st["dateHeure"]);
             if (!dtStr)
                 continue;
             const dt = new Date(dtStr);
@@ -294,7 +413,7 @@ class Mk2Scraper extends base_scraper_js_1.BaseScraper {
     async launchBrowser() {
         this.browser = await playwright_1.chromium.launch({
             headless: true,
-            args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+            args: chromium_args_js_1.CHROMIUM_ARGS,
         });
         this.context = await this.browser.newContext({
             userAgent: HEADERS["User-Agent"],
@@ -338,7 +457,7 @@ class Mk2Scraper extends base_scraper_js_1.BaseScraper {
                 date.setDate(today.getDate() + day);
                 const dateStr = toDateStr(date);
                 try {
-                    const resp = await page.goto(`${BASE_URL}/nos-salles/${slug}?date=${dateStr}`, { waitUntil: "domcontentloaded", timeout: 25_000 });
+                    const resp = await page.goto(`${BASE_URL}/salle/${slug}?date=${dateStr}`, { waitUntil: "domcontentloaded", timeout: 25_000 });
                     if (resp && resp.status() < 400) {
                         await page.waitForLoadState("networkidle", { timeout: 7_000 }).catch(() => { });
                         await sleep(500);
@@ -360,8 +479,8 @@ class Mk2Scraper extends base_scraper_js_1.BaseScraper {
         horizon.setDate(horizon.getDate() + DAYS_AHEAD);
         // ── 1. HTTP + __NEXT_DATA__ ───────────────────────
         this.log(`    📡 HTTP fetch pour ${cinema.slug}…`);
-        const { buildId, data: day0Data, html } = await this.fetchViaHttp(cinema.slug);
-        let allData = [...day0Data];
+        const { buildId, groups: day0Groups, html } = await this.fetchViaHttp(cinema.slug);
+        const allGroups = [...day0Groups];
         if (buildId) {
             this.log(`    🔑 buildId: ${buildId.slice(0, 12)}…`);
             for (let day = 1; day < DAYS_AHEAD; day++) {
@@ -369,14 +488,28 @@ class Mk2Scraper extends base_scraper_js_1.BaseScraper {
                 date.setDate(today.getDate() + day);
                 const dateStr = toDateStr(date);
                 await sleep(150);
-                const dayData = await this.fetchDayViaNextData(cinema.slug, buildId, dateStr);
-                allData.push(...dayData);
-                if (day % 5 === 0)
-                    this.log(`    📅 J+${day} — ${allData.length} séances accumulées`);
+                const dayGroups = await this.fetchDayViaNextData(cinema.slug, buildId, dateStr);
+                // Fusionner : même film → ajouter les sessions manquantes
+                for (const g of dayGroups) {
+                    const existing = allGroups.find(e => e.film.id === g.film.id && e.film.title === g.film.title);
+                    if (existing) {
+                        for (const s of g.sessions) {
+                            if (!existing.sessions.find(es => es.id === s.id))
+                                existing.sessions.push(s);
+                        }
+                    }
+                    else {
+                        allGroups.push(g);
+                    }
+                }
+                if (day % 5 === 0) {
+                    const total = allGroups.reduce((a, g) => a + g.sessions.length, 0);
+                    this.log(`    📅 J+${day} — ${total} séances accumulées`);
+                }
             }
         }
-        if (allData.length > 0) {
-            const result = this.groupShowtimes(allData, today, horizon);
+        if (allGroups.length > 0) {
+            const result = this.convertGroups(allGroups, today, horizon);
             if (result.length > 0)
                 return result;
         }
@@ -391,7 +524,7 @@ class Mk2Scraper extends base_scraper_js_1.BaseScraper {
         this.log(`    🤖 Playwright (fallback) pour ${cinema.slug}…`);
         const pwData = await this.fetchViaPlaywright(cinema.slug, today, horizon);
         if (pwData.length > 0)
-            return this.groupShowtimes(pwData, today, horizon);
+            return this.groupShowtimesRaw(pwData, today, horizon);
         return [];
     }
     // ── Orchestration ─────────────────────────────────────
@@ -428,7 +561,7 @@ class Mk2Scraper extends base_scraper_js_1.BaseScraper {
                         codePostal: cinemaInfo.cp,
                         latitude: cinemaInfo.lat,
                         longitude: cinemaInfo.lng,
-                        siteWeb: `${BASE_URL}/nos-salles/${cinemaInfo.slug}`,
+                        siteWeb: `${BASE_URL}/salle/${cinemaInfo.slug}`,
                         films,
                     });
                     const totalSeances = films.reduce((a, f) => a + f.seances.length, 0);

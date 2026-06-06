@@ -68,6 +68,20 @@ const filmsRoutes: FastifyPluginAsync = async (fastify) => {
     return films;
   });
 
+  // ── GET /api/films/film-du-jour-pool ─────────────────
+  // Pool scoré (≤ 90 films) pour la rotation "Film du jour" de la home.
+  // Cache 1h — les séances ne changent pas en cours de journée.
+  fastify.get("/films/film-du-jour-pool", async (_request, reply) => {
+    const cacheKey = "films:film-du-jour-pool";
+    const cached = await cacheGet(cacheKey);
+    if (cached) { reply.header("X-Cache", "HIT"); return cached; }
+
+    const films = await filmsService.getFilmDuJourPool(90);
+    await cacheSet(cacheKey, films, 60 * 60); // 1h
+    reply.header("X-Cache", "MISS");
+    return films;
+  });
+
   // ── GET /api/films/all-classics ───────────────────────
   fastify.get("/films/all-classics", async (_request, reply) => {
     const cacheKey = "films:all-classics";

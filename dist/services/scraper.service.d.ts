@@ -1,5 +1,5 @@
-import { ScraperResult } from "../scrapers/types.js";
-interface SaveStats {
+import { ScraperResult, ScrapedCinema } from "../scrapers/types.js";
+export interface SaveStats {
     cinemasCreated: number;
     cinemasUpdated: number;
     filmsCreated: number;
@@ -7,13 +7,14 @@ interface SaveStats {
     seancesCreated: number;
     seancesUpdated: number;
 }
+export declare function makeEmptyStats(): SaveStats;
 export declare class ScraperService {
     /**
      * Point d'entrée principal.
      * Persiste l'intégralité d'un ScraperResult en base.
      */
     save(result: ScraperResult): Promise<SaveStats>;
-    private saveCinema;
+    saveCinema(scrapedCinema: ScrapedCinema, source: string, stats: SaveStats): Promise<void>;
     private saveFilm;
     private getSalleId;
     private saveCinemaFilm;
@@ -28,5 +29,4 @@ export declare class ScraperService {
     cleanOldSeances(): Promise<number>;
 }
 export declare const scraperService: ScraperService;
-export {};
 //# sourceMappingURL=scraper.service.d.ts.map

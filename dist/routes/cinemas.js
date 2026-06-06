@@ -18,6 +18,23 @@ const villeQuerySchema = zod_1.z.object({
     limit: zod_1.z.coerce.number().int().min(1).max(200).optional(),
     offset: zod_1.z.coerce.number().int().min(0).optional(),
 });
+const nearbyQuerySchema = zod_1.z.object({
+    lat: zod_1.z.coerce.number().min(-90).max(90),
+    lng: zod_1.z.coerce.number().min(-180).max(180),
+    radius: zod_1.z.coerce.number().min(0.5).max(100).default(15), // km
+    limit: zod_1.z.coerce.number().int().min(1).max(50).default(10),
+});
+/** Formule de Haversine — retourne la distance en km */
+function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 const programmeQuerySchema = zod_1.z.object({
     date: zod_1.z
         .string()
@@ -55,6 +72,41 @@ const cinemasRoutes = async (fastify) => {
         await (0, redis_js_1.cacheSet)(cacheKey, cinemas, TTL);
         reply.header("X-Cache", "MISS");
         return cinemas;
+    });
+    // ── GET /api/cinemas/nearby?lat=&lng=&radius= ────────
+    /**
+     * Cinémas proches d'une position géographique, triés par distance.
+     * @query lat    {number} Latitude
+     * @query lng    {number} Longitude
+     * @query radius {number} Rayon en km (défaut 15)
+     * @query limit  {number} Nombre max de résultats (défaut 10)
+     */
+    fastify.get("/cinemas/nearby", async (request, reply) => {
+        const parsed = nearbyQuerySchema.safeParse(request.query);
+        if (!parsed.success) {
+            return reply.code(400).send({ error: "Paramètres invalides", details: parsed.error.flatten().fieldErrors });
+        }
+        const { lat, lng, radius, limit } = parsed.data;
+        const cacheKey = `cinemas:nearby:${lat.toFixed(3)}:${lng.toFixed(3)}:${radius}`;
+        const cached = await (0, redis_js_1.cacheGet)(cacheKey);
+        if (cached) {
+            reply.header("X-Cache", "HIT");
+            return cached;
+        }
+        // Récupérer tous les cinémas avec coordonnées
+        const all = await cinemas_service_js_1.cinemasService.getCinemasByVille(""); // all = pas de filtre ville
+        const nearby = all
+            .filter(c => c.latitude != null && c.longitude != null)
+            .map(c => ({
+            ...c,
+            distanceKm: haversineKm(lat, lng, c.latitude, c.longitude),
+        }))
+            .filter(c => c.distanceKm <= radius)
+            .sort((a, b) => a.distanceKm - b.distanceKm)
+            .slice(0, limit);
+        await (0, redis_js_1.cacheSet)(cacheKey, nearby, 60 * 5); // 5 min (position change fréquente)
+        reply.header("X-Cache", "MISS");
+        return nearby;
     });
     // ── GET /api/cinemas/:id ──────────────────────────────
     /**

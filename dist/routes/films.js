@@ -35,15 +35,16 @@ const seancesQuerySchema = zod_1.z.object({
 const filmsRoutes = async (fastify) => {
     // ── GET /api/films/trending ───────────────────────────
     fastify.get("/films/trending", async (request, reply) => {
-        const { limit = "8" } = request.query;
+        const { limit = "8", ville = "" } = request.query;
         const limitNum = Math.min(Math.max(parseInt(limit, 10) || 8, 1), 20);
-        const cacheKey = `films:trending:${limitNum}`;
+        const villeKey = ville.trim().toLowerCase();
+        const cacheKey = `films:trending:${limitNum}:${villeKey}`;
         const cached = await (0, redis_js_1.cacheGet)(cacheKey);
         if (cached) {
             reply.header("X-Cache", "HIT");
             return cached;
         }
-        const films = await films_service_js_1.filmsService.getTrendingFilms(limitNum);
+        const films = await films_service_js_1.filmsService.getTrendingFilms(limitNum, ville.trim());
         await (0, redis_js_1.cacheSet)(cacheKey, films, 60 * 10); // 10 min
         reply.header("X-Cache", "MISS");
         return films;
@@ -57,6 +58,21 @@ const filmsRoutes = async (fastify) => {
             return cached;
         }
         const films = await films_service_js_1.filmsService.getClassicFilms(18);
+        await (0, redis_js_1.cacheSet)(cacheKey, films, 60 * 60); // 1h
+        reply.header("X-Cache", "MISS");
+        return films;
+    });
+    // ── GET /api/films/film-du-jour-pool ─────────────────
+    // Pool scoré (≤ 90 films) pour la rotation "Film du jour" de la home.
+    // Cache 1h — les séances ne changent pas en cours de journée.
+    fastify.get("/films/film-du-jour-pool", async (_request, reply) => {
+        const cacheKey = "films:film-du-jour-pool";
+        const cached = await (0, redis_js_1.cacheGet)(cacheKey);
+        if (cached) {
+            reply.header("X-Cache", "HIT");
+            return cached;
+        }
+        const films = await films_service_js_1.filmsService.getFilmDuJourPool(90);
         await (0, redis_js_1.cacheSet)(cacheKey, films, 60 * 60); // 1h
         reply.header("X-Cache", "MISS");
         return films;
@@ -432,6 +448,84 @@ const filmsRoutes = async (fastify) => {
             count: agg._count.note,
         };
         await (0, redis_js_1.cacheSet)(cacheKey, result, 60 * 5); // 5 min
+        reply.header("X-Cache", "MISS");
+        return result;
+    });
+    // ── GET /api/films/:id/posters ───────────────────────
+    /**
+     * Retourne les affiches disponibles pour un film (TMDB).
+     * Réservé aux membres Pro (vérifié côté frontend, l'endpoint est ouvert
+     * car les images TMDB sont publiques de toute façon).
+     * @returns { posters: string[] }  URLs complètes (w500)
+     */
+    fastify.get("/films/:id/posters", async (request, reply) => {
+        const { id } = request.params;
+        const cacheKey = `films:posters:${id}`;
+        const cached = await (0, redis_js_1.cacheGet)(cacheKey);
+        if (cached) {
+            reply.header("X-Cache", "HIT");
+            return cached;
+        }
+        const film = await films_service_js_1.filmsService.getFilmById(id);
+        if (!film)
+            return reply.code(404).send({ error: "Film introuvable" });
+        const posters = [];
+        // Toujours inclure l'affiche principale si elle existe
+        if (film.affiche)
+            posters.push(film.affiche);
+        if (TMDB_KEY) {
+            // Helper : récupère les affiches depuis un tmdbId numérique
+            const fetchTmdbPosters = async (tmdbId) => {
+                const [frRes, enRes] = await Promise.all([
+                    fetch(`${TMDB_BASE}/movie/${tmdbId}/images?api_key=${TMDB_KEY}&include_image_language=fr,null`, {
+                        signal: AbortSignal.timeout(6_000),
+                    }).then(r => r.ok ? r.json() : { posters: [] }),
+                    fetch(`${TMDB_BASE}/movie/${tmdbId}/images?api_key=${TMDB_KEY}&include_image_language=en,null`, {
+                        signal: AbortSignal.timeout(6_000),
+                    }).then(r => r.ok ? r.json() : { posters: [] }),
+                ]);
+                return [...(frRes.posters ?? []), ...(enRes.posters ?? [])];
+            };
+            try {
+                let tmdbImages = [];
+                if (film.tmdbId) {
+                    // Cas 1 : tmdbId connu → fetch direct
+                    tmdbImages = await fetchTmdbPosters(Number(film.tmdbId));
+                }
+                else if (film.titre) {
+                    // Cas 2 : pas de tmdbId → recherche par titre + année
+                    const q = encodeURIComponent(film.titre);
+                    const yearParam = film.annee ? `&year=${film.annee}` : "";
+                    const searchUrl = `${TMDB_BASE}/search/movie?api_key=${TMDB_KEY}&query=${q}${yearParam}&language=fr-FR`;
+                    const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(6_000) });
+                    if (searchRes.ok) {
+                        const searchData = await searchRes.json();
+                        const firstMatch = searchData.results?.[0];
+                        if (firstMatch?.id) {
+                            tmdbImages = await fetchTmdbPosters(firstMatch.id);
+                        }
+                    }
+                }
+                // Dédupliquer et trier par vote_average desc, max 12
+                const seen = new Set();
+                const all = tmdbImages
+                    .filter(p => { if (seen.has(p.file_path))
+                    return false; seen.add(p.file_path); return true; })
+                    .sort((a, b) => b.vote_average - a.vote_average)
+                    .slice(0, 12);
+                for (const p of all) {
+                    const url = `https://image.tmdb.org/t/p/w500${p.file_path}`;
+                    if (!posters.includes(url))
+                        posters.push(url);
+                }
+            }
+            catch {
+                // TMDB indisponible : retourner juste l'affiche principale
+            }
+        }
+        const result = { posters };
+        // Cache court (2h) pour que les nouveaux tmdbId soient pris en compte rapidement
+        await (0, redis_js_1.cacheSet)(cacheKey, result, 60 * 60 * 2);
         reply.header("X-Cache", "MISS");
         return result;
     });

@@ -16,7 +16,8 @@ class FilmsService {
     async searchFilms(q) {
         const now = new Date();
         const term = q.trim();
-        // Recherche par acteur via requête raw (ILIKE sur tableau PostgreSQL)
+        const words = term ? term.split(/\s+/).filter(Boolean) : [];
+        // Recherche par acteur via requête raw (ILIKE sur tableau PostgreSQL) — terme complet
         let actorIds = [];
         if (term) {
             const rows = await prisma_js_1.prisma.$queryRaw `
@@ -28,16 +29,30 @@ class FilmsService {
       `;
             actorIds = rows.map((r) => r.id);
         }
-        const where = term
-            ? {
+        let where = {};
+        if (words.length === 1) {
+            // Terme unique : recherche exacte par substring dans tous les champs
+            where = {
                 OR: [
-                    { titre: { contains: term, mode: "insensitive" } },
-                    { titreOriginal: { contains: term, mode: "insensitive" } },
-                    { realisateur: { contains: term, mode: "insensitive" } },
+                    { titre: { contains: words[0], mode: "insensitive" } },
+                    { titreOriginal: { contains: words[0], mode: "insensitive" } },
+                    { realisateur: { contains: words[0], mode: "insensitive" } },
                     ...(actorIds.length > 0 ? [{ id: { in: actorIds } }] : []),
                 ],
-            }
-            : {};
+            };
+        }
+        else if (words.length > 1) {
+            // Plusieurs mots : chaque mot doit apparaître dans le titre ou le titre original
+            // "tron ares" → trouve "Tron: Ares"
+            where = {
+                AND: words.map((word) => ({
+                    OR: [
+                        { titre: { contains: word, mode: "insensitive" } },
+                        { titreOriginal: { contains: word, mode: "insensitive" } },
+                    ],
+                })),
+            };
+        }
         const films = await prisma_js_1.prisma.film.findMany({
             where,
             include: {
@@ -80,21 +95,38 @@ class FilmsService {
         const offset = (page - 1) * limit;
         const where = {};
         if (q.trim()) {
-            // Recherche par acteur (ILIKE sur tableau PostgreSQL)
-            const actorRows = await prisma_js_1.prisma.$queryRaw `
-        SELECT id FROM "Film"
-        WHERE EXISTS (
-          SELECT 1 FROM unnest(acteurs) AS a
-          WHERE a ILIKE ${'%' + q.trim() + '%'}
-        )
-      `;
-            const actorIds = actorRows.map((r) => r.id);
-            where["OR"] = [
-                { titre: { contains: q.trim(), mode: "insensitive" } },
-                { titreOriginal: { contains: q.trim(), mode: "insensitive" } },
-                { realisateur: { contains: q.trim(), mode: "insensitive" } },
-                ...(actorIds.length > 0 ? [{ id: { in: actorIds } }] : []),
-            ];
+            const term = q.trim();
+            const words = term ? term.split(/\s+/).filter(Boolean) : [];
+            // Recherche par acteur
+            let actorIds = [];
+            if (term) {
+                const rows = await prisma_js_1.prisma.$queryRaw `
+          SELECT id FROM "Film"
+          WHERE EXISTS (
+            SELECT 1 FROM unnest(acteurs) AS a
+            WHERE a ILIKE ${'%' + term + '%'}
+          )
+        `;
+                actorIds = rows.map((r) => r.id);
+            }
+            if (words.length === 1) {
+                // Un mot : recherche dans tous les champs
+                where["OR"] = [
+                    { titre: { contains: words[0], mode: "insensitive" } },
+                    { titreOriginal: { contains: words[0], mode: "insensitive" } },
+                    { realisateur: { contains: words[0], mode: "insensitive" } },
+                    ...(actorIds.length > 0 ? [{ id: { in: actorIds } }] : []),
+                ];
+            }
+            else if (words.length > 1) {
+                // Plusieurs mots : chaque mot doit être dans titre ou titreOriginal
+                where["AND"] = words.map((word) => ({
+                    OR: [
+                        { titre: { contains: word, mode: "insensitive" } },
+                        { titreOriginal: { contains: word, mode: "insensitive" } },
+                    ],
+                }));
+            }
         }
         if (genre) {
             where["genres"] = { has: genre };
@@ -167,20 +199,24 @@ class FilmsService {
      *    → les films très populaires (type blockbuster) remontent même sans beaucoup de séances
      *  - Maximum 2 "classiques" (annee <= currentYear - 3) dans le résultat final
      */
-    async getTrendingFilms(limit = 8) {
+    async getTrendingFilms(limit = 8, ville = "") {
         const now = new Date();
         const currentYear = now.getFullYear();
         const in14 = new Date(now);
         in14.setDate(in14.getDate() + 14);
+        // Filtre optionnel sur la ville (via la salle → cinéma)
+        const villeFilter = ville
+            ? { salle: { cinema: { ville: { contains: ville, mode: "insensitive" } } } }
+            : {};
         // ── Pool A : films avec séances prochainement ─────────
         const filmsWithSeances = await prisma_js_1.prisma.film.findMany({
             where: {
-                seances: { some: { dateHeure: { gte: now, lte: in14 } } },
+                seances: { some: { dateHeure: { gte: now, lte: in14 }, ...villeFilter } },
             },
             include: {
                 _count: {
                     select: {
-                        seances: { where: { dateHeure: { gte: now, lte: in14 } } },
+                        seances: { where: { dateHeure: { gte: now, lte: in14 }, ...villeFilter } },
                     },
                 },
             },
@@ -298,6 +334,69 @@ class FilmsService {
             imdbNote: r.imdbNote ?? null,
             imdbVotes: r.imdbVotes ?? null,
             seancesCount: r._count.seances,
+        }));
+    }
+    /**
+     * Pool pour le "Film du jour" côté home.
+     *
+     * Récupère tous les films ayant des séances dans les 30 prochains jours,
+     * les score avec une formule combinant disponibilité en salle, popularité
+     * TMDB et note critique, puis retourne les 90 meilleurs.
+     *
+     * Score = seances(normalisé) × 0.40
+     *       + popularitéTMDB(normalisé) × 0.35
+     *       + note×log10(votes+10)(normalisé) × 0.25
+     *
+     * 90 films → rotation sur 3 mois sans répétition.
+     */
+    async getFilmDuJourPool(poolSize = 90) {
+        const now = new Date();
+        const in30 = new Date(now);
+        in30.setDate(in30.getDate() + 30);
+        const rows = await prisma_js_1.prisma.film.findMany({
+            where: {
+                affiche: { not: null },
+                seances: { some: { dateHeure: { gte: now, lte: in30 } } },
+            },
+            include: {
+                _count: { select: { seances: { where: { dateHeure: { gte: now, lte: in30 } } } } },
+            },
+        });
+        const withSeances = rows.filter((r) => r._count.seances > 0);
+        if (!withSeances.length)
+            return [];
+        // Valeurs max pour normalisation
+        const maxSeances = Math.max(...withSeances.map((r) => r._count.seances), 1);
+        const maxPop = Math.max(...withSeances.map((r) => r.tmdbPopularite ?? 0), 1);
+        const maxCritique = Math.max(...withSeances.map((r) => {
+            const note = r.imdbNote ?? r.tmdbNote ?? 0;
+            const votes = r.imdbVotes ?? 0;
+            return note * Math.log10(votes + 10);
+        }), 1);
+        const scored = withSeances.map((r) => {
+            const note = r.imdbNote ?? r.tmdbNote ?? 0;
+            const votes = r.imdbVotes ?? 0;
+            const sN = r._count.seances / maxSeances;
+            const pN = (r.tmdbPopularite ?? 0) / maxPop;
+            const cN = (note * Math.log10(votes + 10)) / maxCritique;
+            return { r, score: sN * 0.40 + pN * 0.35 + cN * 0.25, seancesCount: r._count.seances };
+        });
+        scored.sort((a, b) => b.score - a.score);
+        return scored.slice(0, poolSize).map(({ r, seancesCount }) => ({
+            id: r.id,
+            titre: r.titre,
+            titreOriginal: r.titreOriginal,
+            affiche: r.affiche,
+            synopsis: r.synopsis,
+            duree: r.duree,
+            genres: r.genres,
+            realisateur: r.realisateur,
+            acteurs: r.acteurs ?? [],
+            annee: r.annee,
+            tmdbNote: r.tmdbNote ?? null,
+            imdbNote: r.imdbNote ?? null,
+            imdbVotes: r.imdbVotes ?? null,
+            seancesCount,
         }));
     }
     /**

@@ -2,8 +2,9 @@
 // ─────────────────────────────────────────────────────────
 //  Job de scraping planifié
 //
-//  Planification : tous les jours à 06:00 (heure Paris)
-//  Cron expression : "0 6 * * *"
+//  Planification :
+//    06:00 — UGC, AlloCiné, Pathé/Gaumont, MK2  (scrapers HTTP légers)
+//    09:00 — CGR  (Playwright/Chromium, lancé séparément pour éviter l'OOM)
 //
 //  Déroulement :
 //    1. Lance tous les scrapers enregistrés
@@ -21,6 +22,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runAllScrapers = runAllScrapers;
+exports.runCgrScraper = runCgrScraper;
 exports.registerScrapeJob = registerScrapeJob;
 const node_cron_1 = __importDefault(require("node-cron"));
 const child_process_1 = require("child_process");
@@ -28,47 +30,56 @@ const ugc_scraper_js_1 = require("../scrapers/ugc.scraper.js");
 const allocine_scraper_js_1 = require("../scrapers/allocine.scraper.js");
 const pathe_scraper_js_1 = require("../scrapers/pathe.scraper.js");
 const mk2_scraper_js_1 = require("../scrapers/mk2.scraper.js");
+const cgr_scraper_js_1 = require("../scrapers/cgr.scraper.js");
 const scraper_service_js_1 = require("../services/scraper.service.js");
-// ── Registre des scrapers actifs ──────────────────────────
-const SCRAPERS = [
+// ── Registre des scrapers HTTP (06:00) ───────────────────
+// CGR utilise Playwright/Chromium et est planifié séparément à 09:00
+// pour ne pas provoquer d'OOM en cumulant avec AlloCiné.
+const HTTP_SCRAPERS = [
     new ugc_scraper_js_1.UgcScraper(),
     new allocine_scraper_js_1.AllocineScraper(),
     new pathe_scraper_js_1.PatheScraper(),
     new mk2_scraper_js_1.Mk2Scraper(),
 ];
-// ── Runner ────────────────────────────────────────────────
-/**
- * Exécute tous les scrapers enregistrés et persiste les résultats.
- * Peut être appelé manuellement (ex: via endpoint d'admin) ou par le cron.
- */
-async function runAllScrapers() {
+// ── Runner générique ──────────────────────────────────────
+async function runScrapers(scrapers, label) {
     const startedAt = new Date();
     console.log(`\n${"─".repeat(50)}\n` +
-        `🕐 Scraping démarré — ${startedAt.toLocaleString("fr-FR")}\n` +
+        `🕐 Scraping [${label}] démarré — ${startedAt.toLocaleString("fr-FR")}\n` +
         `${"─".repeat(50)}`);
     let totalCinemas = 0;
     let totalFilms = 0;
     let totalSeances = 0;
     let totalErrors = 0;
-    // Exécuter chaque scraper de façon séquentielle
-    // (évite de surcharger les serveurs cibles simultanément)
-    for (const scraper of SCRAPERS) {
+    for (const scraper of scrapers) {
         console.log(`\n🔍 Lancement du scraper : ${scraper.name.toUpperCase()}`);
+        // Mode streaming pour AlloCiné : sauvegarde incrémentale cinéma par cinéma
+        const streamStats = (0, scraper_service_js_1.makeEmptyStats)();
+        if (scraper instanceof allocine_scraper_js_1.AllocineScraper) {
+            scraper.onCinema = async (cinema) => {
+                await scraper_service_js_1.scraperService.saveCinema(cinema, scraper.name, streamStats);
+            };
+        }
         try {
-            // 1. Scraping
             const result = await scraper.scrape();
-            // 2. Persistance en BDD
-            console.log(`💾 Sauvegarde en base de données…`);
-            const stats = await scraper_service_js_1.scraperService.save(result);
-            // 3. Bilan par scraper
-            const filmCount = result.cinemas.reduce((acc, c) => acc + c.films.length, 0);
-            const seanceCount = result.cinemas.reduce((acc, c) => acc + c.films.reduce((a, f) => a + f.seances.length, 0), 0);
-            totalCinemas += result.cinemas.length;
+            const stats = scraper instanceof allocine_scraper_js_1.AllocineScraper
+                ? streamStats
+                : (console.log(`💾 Sauvegarde en base de données…`), await scraper_service_js_1.scraperService.save(result));
+            const cinemaCount = scraper instanceof allocine_scraper_js_1.AllocineScraper
+                ? stats.cinemasCreated + stats.cinemasUpdated
+                : result.cinemas.length;
+            const filmCount = scraper instanceof allocine_scraper_js_1.AllocineScraper
+                ? stats.filmsCreated + stats.filmsUpdated
+                : result.cinemas.reduce((acc, c) => acc + c.films.length, 0);
+            const seanceCount = scraper instanceof allocine_scraper_js_1.AllocineScraper
+                ? stats.seancesCreated + stats.seancesUpdated
+                : result.cinemas.reduce((acc, c) => acc + c.films.reduce((a, f) => a + f.seances.length, 0), 0);
+            totalCinemas += cinemaCount;
             totalFilms += filmCount;
             totalSeances += seanceCount;
             totalErrors += result.errors.length;
             console.log(`\n📊 Bilan ${scraper.name.toUpperCase()} :\n` +
-                `   Cinémas : ${result.cinemas.length} scrapés ` +
+                `   Cinémas : ${cinemaCount} scrapés ` +
                 `(${stats.cinemasCreated} créés, ${stats.cinemasUpdated} mis à jour)\n` +
                 `   Films   : ${filmCount} trouvés ` +
                 `(${stats.filmsCreated} créés, ${stats.filmsUpdated} mis à jour)\n` +
@@ -83,44 +94,59 @@ async function runAllScrapers() {
         catch (err) {
             totalErrors++;
             console.error(`❌ Erreur fatale dans le scraper ${scraper.name} :`, err);
-            // On continue avec les scrapers suivants
         }
     }
-    // 4. Nettoyage des séances passées
-    try {
-        const deleted = await scraper_service_js_1.scraperService.cleanOldSeances();
-        if (deleted > 0) {
-            console.log(`\n🧹 ${deleted} séance(s) passée(s) supprimée(s)`);
+    // Nettoyage des séances passées (uniquement après le batch principal)
+    if (label === "HTTP") {
+        try {
+            const deleted = await scraper_service_js_1.scraperService.cleanOldSeances();
+            if (deleted > 0) {
+                console.log(`\n🧹 ${deleted} séance(s) passée(s) supprimée(s)`);
+            }
+        }
+        catch (err) {
+            console.error("⚠️  Erreur lors du nettoyage des séances :", err);
         }
     }
-    catch (err) {
-        console.error("⚠️  Erreur lors du nettoyage des séances :", err);
-    }
-    // 5. Bilan global
     const durationMs = Date.now() - startedAt.getTime();
     const durationStr = durationMs > 60_000
         ? `${Math.round(durationMs / 60_000)}min`
         : `${Math.round(durationMs / 1_000)}s`;
     console.log(`\n${"─".repeat(50)}\n` +
-        `✅ Scraping terminé en ${durationStr}\n` +
+        `✅ Scraping [${label}] terminé en ${durationStr}\n` +
         `   Total cinémas : ${totalCinemas}\n` +
         `   Total films   : ${totalFilms}\n` +
         `   Total séances : ${totalSeances}\n` +
         `   Total erreurs : ${totalErrors}\n` +
         `${"─".repeat(50)}\n`);
-    // 6. Post-scrape : enrichissement affiches + vérification alertes
-    runPostScrapeJobs();
+    if (label === "HTTP") {
+        runPostScrapeJobs();
+    }
+}
+/**
+ * Exécute les scrapers HTTP (UGC, AlloCiné, Pathé, MK2).
+ * Appelé à 06:00 ou manuellement.
+ */
+async function runAllScrapers() {
+    await runScrapers(HTTP_SCRAPERS, "HTTP");
+}
+/**
+ * Exécute le scraper CGR (Playwright).
+ * Appelé à 09:00, après que le batch HTTP ait libéré la mémoire.
+ */
+async function runCgrScraper() {
+    await runScrapers([new cgr_scraper_js_1.CgrScraper()], "CGR");
 }
 /** Lance auto-fix-posters puis check-alertes en sous-processus (non bloquant) */
 function runPostScrapeJobs() {
     const scripts = [
-        "src/scripts/auto-fix-posters.ts",
-        "src/scripts/check-alertes.ts",
+        "dist/scripts/auto-fix-posters.js",
+        "dist/scripts/check-alertes.js",
     ];
     for (const script of scripts) {
         const label = script.split("/").pop();
         console.log(`\n⚙️  Post-scrape : lancement de ${label}…`);
-        const child = (0, child_process_1.spawn)("npx", ["tsx", script], {
+        const child = (0, child_process_1.spawn)("node", [script], {
             cwd: process.cwd(),
             shell: true,
             stdio: "inherit",
@@ -135,30 +161,40 @@ function runPostScrapeJobs() {
         });
     }
 }
-// ── Enregistrement du cron ────────────────────────────────
+// ── Enregistrement des crons ──────────────────────────────
 /**
- * Enregistre le job cron quotidien à 06:00.
- * À appeler au démarrage du serveur.
+ * Enregistre les deux jobs cron :
+ *   - 06:00 → scrapers HTTP (UGC, AlloCiné, Pathé, MK2)
+ *   - 09:00 → scraper CGR (Playwright) isolé pour éviter l'OOM
  */
 function registerScrapeJob() {
-    // "0 6 * * *" = tous les jours à 06h00
-    const cronExpression = process.env["SCRAPE_CRON"] ?? "0 6 * * *";
-    if (!node_cron_1.default.validate(cronExpression)) {
-        throw new Error(`Expression cron invalide : "${cronExpression}" (variable SCRAPE_CRON)`);
+    // Hardcodé "tous les jours" — la var d'env SCRAPE_CRON peut être mal configurée
+    const httpCron = "0 11 * * *";
+    const cgrCron = "0 14 * * *";
+    if (!node_cron_1.default.validate(httpCron)) {
+        throw new Error(`Expression cron invalide : "${httpCron}" (SCRAPE_CRON)`);
     }
-    const task = node_cron_1.default.schedule(cronExpression, async () => {
-        console.log("[CRON] Déclenchement du job de scraping…");
-        try {
-            await runAllScrapers();
-        }
-        catch (err) {
-            console.error("[CRON] Erreur fatale non catchée :", err);
-        }
-    }, {
-        timezone: "Europe/Paris",
-    });
-    console.log(`✅ Job de scraping planifié : "${cronExpression}" (Europe/Paris)`);
-    // Référence pour pouvoir l'arrêter proprement au shutdown
-    return void task;
+    if (!node_cron_1.default.validate(cgrCron)) {
+        throw new Error(`Expression cron invalide : "${cgrCron}" (SCRAPE_CRON_CGR)`);
+    }
+    node_cron_1.default.schedule(httpCron, () => {
+        console.log("[CRON] Déclenchement du job HTTP (UGC, AlloCiné, Pathé, MK2) — processes isolés…");
+        const child = (0, child_process_1.spawn)("node", ["dist/scripts/run-scraper.js"], {
+            cwd: process.cwd(), shell: true, stdio: "inherit",
+        });
+        child.on("error", (err) => console.error("[CRON HTTP] Erreur :", err.message));
+        child.on("close", (code) => console.log(`[CRON HTTP] Terminé (code ${code})`));
+    }, { timezone: "Europe/Paris" });
+    node_cron_1.default.schedule(cgrCron, () => {
+        console.log("[CRON] Déclenchement du job CGR (Playwright)…");
+        const child = (0, child_process_1.spawn)("node", ["dist/scripts/run-scraper.js", "cgr"], {
+            cwd: process.cwd(), shell: true, stdio: "inherit",
+        });
+        child.on("error", (err) => console.error("[CRON CGR] Erreur :", err.message));
+        child.on("close", (code) => console.log(`[CRON CGR] Terminé (code ${code})`));
+    }, { timezone: "Europe/Paris" });
+    console.log(`✅ Jobs de scraping planifiés :\n` +
+        `   HTTP (UGC/AlloCiné/Pathé/MK2) : "${httpCron}" (Europe/Paris)\n` +
+        `   CGR  (Playwright)              : "${cgrCron}"  (Europe/Paris)`);
 }
 //# sourceMappingURL=scrape.job.js.map

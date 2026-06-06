@@ -16,11 +16,22 @@ const RESEND_API_URL = "https://api.resend.com/emails";
  * Si RESEND_API_KEY n'est pas configuré, logue simplement en console.
  */
 async function sendEmail(options) {
+    const isDev = process.env["NODE_ENV"] !== "production";
+    // En dev : toujours afficher le lien dans la console (utile même si Resend fonctionne)
+    if (isDev) {
+        console.log("\n──────────────────────────────────────────");
+        console.log(`[Email DEV] À       : ${options.to}`);
+        console.log(`[Email DEV] Objet   : ${options.subject}`);
+        // Extraire les liens du HTML pour les afficher directement
+        const links = [...options.html.matchAll(/href="([^"]+)"/g)].map(m => m[1]).filter(l => l.startsWith("http"));
+        if (links.length > 0) {
+            console.log(`[Email DEV] Liens   :`);
+            links.forEach(l => console.log(`  → ${l}`));
+        }
+        console.log("──────────────────────────────────────────\n");
+    }
     if (!RESEND_API_KEY || RESEND_API_KEY === "re_xxxxxxxxxxxxxxxxxxxx") {
-        console.log("[Email] Clé Resend non configurée — email simulé :");
-        console.log(`  → À : ${options.to}`);
-        console.log(`  → Objet : ${options.subject}`);
-        return;
+        return; // Pas de clé → simulation suffisante
     }
     const response = await fetch(RESEND_API_URL, {
         method: "POST",
@@ -37,6 +48,11 @@ async function sendEmail(options) {
     });
     if (!response.ok) {
         const error = await response.text();
+        // En dev, on ne bloque pas sur l'erreur Resend (sandbox restreint)
+        if (isDev) {
+            console.warn(`[Email DEV] Resend a refusé (${response.status}) — normal en sandbox. Utilisez le lien ci-dessus.`);
+            return;
+        }
         throw new Error(`Resend API error ${response.status}: ${error}`);
     }
 }

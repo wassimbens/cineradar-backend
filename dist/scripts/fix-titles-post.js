@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// @ts-nocheck
 const client_1 = require("@prisma/client");
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();

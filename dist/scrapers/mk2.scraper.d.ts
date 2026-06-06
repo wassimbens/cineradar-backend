@@ -7,7 +7,8 @@ export declare class Mk2Scraper extends BaseScraper {
     private fetchViaHttp;
     private fetchDayViaNextData;
     private parseJsonLd;
-    private groupShowtimes;
+    private convertGroups;
+    private groupShowtimesRaw;
     private launchBrowser;
     private closeBrowser;
     private fetchViaPlaywright;

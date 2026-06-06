@@ -1,47 +1,56 @@
 "use strict";
 // ─────────────────────────────────────────────────────────
-//  Scraper Pathé — pathe.fr  (refonte complète)
+//  Scraper Pathé — pathe.fr  (refonte API)
 //
-//  Stratégie :
-//    1. Fetch HTTP direct + extraction __NEXT_DATA__ (Next.js SSR)
-//    2. Pour J+1…J+29 : _next/data/{buildId}/cinemas/{slug}.json
-//    3. Parser récursif robuste sur la structure pageProps
-//    4. Fallback Playwright (stealth) si HTTP bloqué
+//  DIAGNOSTIC (mai 2026) :
+//    - pathe.fr est une SPA Angular (PAS Next.js) → pas de __NEXT_DATA__
+//    - Les pages HTML sont bloquées par Akamai Bot Manager côté IP serveur
+//    - Même Playwright stealth est détecté et bloqué
 //
-//  Améliorations vs v1 :
-//    - Pas de Playwright pour le cas nominal → 10× plus rapide
-//    - Retry 429/503 avec back-off exponentiel
-//    - Meilleure liste de cinémas (27 établissements)
-//    - Détection VF/VOST/VO et format améliorée
-//    - Timezone Europe/Paris stricte
+//  Stratégie retenue : REST API publique (non documentée mais accessible)
+//    GET /api/cinemas?language=fr
+//      → liste de tous les cinémas avec vistaRef et slug
+//    GET /api/shows?cinema={slug}&date={YYYY-MM-DD}&language=fr
+//      → liste des films à l'affiche avec métadonnées (titre, durée, affiche…)
+//        mais PAS les créneaux horaires individuels
+//    GET /api/cinema/{slug}/shows?date={YYYY-MM-DD}&language=fr
+//      → par film-slug : versions disponibles ce jour-là
+//        mais toujours PAS les horaires HH:MM
+//
+//  LIMITATION CONNUE : les horaires précis (HH:MM) ne sont pas exposés via
+//  ces endpoints REST. L'Angular app les récupère en interne via des appels
+//  à un proxy Vista (système de billetterie) qui requiert un token de session.
+//  Sans accès aux pages HTML (bloquées Akamai), il est impossible d'obtenir
+//  ce token côté serveur.
+//
+//  Ce scraper retourne donc les films à l'affiche avec leur version (VF/VO/VOSTFR)
+//  mais sans les créneaux horaires individuels.
+//  Pour les séances complètes, il faudra soit :
+//    (a) un proxy résidentiel pour contourner Akamai, ou
+//    (b) un accès à l'API Vista avec token.
 // ─────────────────────────────────────────────────────────
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PatheScraper = void 0;
-// @ts-ignore
-const playwright_extra_1 = require("playwright-extra");
-// @ts-ignore
-const puppeteer_extra_plugin_stealth_1 = __importDefault(require("puppeteer-extra-plugin-stealth"));
+const playwright_1 = require("playwright");
 const client_1 = require("@prisma/client");
 const base_scraper_js_1 = require("./base.scraper.js");
-playwright_extra_1.chromium.use((0, puppeteer_extra_plugin_stealth_1.default)());
+const chromium_args_js_1 = require("./chromium-args.js");
 const BASE_URL = "https://www.pathe.fr";
-const DAYS_AHEAD = 30;
+const API_BASE = `${BASE_URL}/api`;
+const DAYS_AHEAD = 14; // réduit car les horaires précis ne sont pas dispo
 const HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Cache-Control": "no-cache",
+    "Accept": "application/json, */*;q=0.8",
+    "Accept-Language": "fr-FR,fr;q=0.9",
+    "Origin": BASE_URL,
+    "Referer": BASE_URL + "/",
 };
 const JSON_HEADERS = {
     ...HEADERS,
     "Accept": "application/json, */*;q=0.8",
     "x-nextjs-data": "1",
 };
-// ── Cinémas Pathé France (27 établissements) ──────────────
+// ── Cinémas Pathé + Gaumont France (même site pathe.fr) ───
 const PATHE_CINEMAS = [
     // ── Paris ──
     { slug: "pathe-wepler", name: "Pathé Wepler", address: "17 Place de Clichy", city: "Paris", zipCode: "75018", latitude: 48.8838, longitude: 2.3278 },
@@ -82,6 +91,23 @@ const PATHE_CINEMAS = [
     { slug: "pathe-montpellier", name: "Pathé Montpellier", address: "Odysseum, Av Raymond Dugrand", city: "Montpellier", zipCode: "34000", latitude: 43.6049, longitude: 3.9200 },
     // ── Clermont-Ferrand ──
     { slug: "pathe-clermont-ferrand", name: "Pathé Clermont-Ferrand", address: "27 Bd François Mitterrand", city: "Clermont-Ferrand", zipCode: "63000", latitude: 45.7797, longitude: 3.0863 },
+    // ── Gaumont (exploités par Pathé, même site pathe.fr) ────────────────────
+    // Slugs déduits du pattern pathe.fr/cinemas/{slug} — ignorés si 404
+    // ── Paris ──
+    { slug: "gaumont-aquaboulevard", name: "Gaumont Aquaboulevard", address: "37 Rue Balard", city: "Paris", zipCode: "75015", latitude: 48.8393, longitude: 2.2790 },
+    { slug: "gaumont-alesia", name: "Gaumont Alésia", address: "73 Av du Gal Leclerc", city: "Paris", zipCode: "75014", latitude: 48.8259, longitude: 2.3264 },
+    { slug: "gaumont-parnasse", name: "Gaumont Parnasse", address: "92 Bd du Montparnasse", city: "Paris", zipCode: "75014", latitude: 48.8424, longitude: 2.3254 },
+    { slug: "gaumont-ambassade", name: "Gaumont Ambassade", address: "50 Av des Champs-Élysées", city: "Paris", zipCode: "75008", latitude: 48.8698, longitude: 2.3074 },
+    { slug: "gaumont-opera-premier", name: "Gaumont Opéra Premier", address: "2 Rue Halévy", city: "Paris", zipCode: "75009", latitude: 48.8716, longitude: 2.3310 },
+    { slug: "gaumont-opera-capucines", name: "Gaumont Opéra Capucines", address: "31 Bd des Capucines", city: "Paris", zipCode: "75002", latitude: 48.8706, longitude: 2.3324 },
+    { slug: "gaumont-grand-ecran-italie", name: "Gaumont Grand Écran Italie", address: "30 Pl d'Italie", city: "Paris", zipCode: "75013", latitude: 48.8312, longitude: 2.3561 },
+    // ── Île-de-France ──
+    { slug: "gaumont-montrouge", name: "Gaumont Montrouge", address: "16 Av de la République", city: "Montrouge", zipCode: "92120", latitude: 48.8179, longitude: 2.3229 },
+    // ── Province ──
+    { slug: "gaumont-bordeaux", name: "Gaumont Bordeaux Mériadeck", address: "2 Rue de Condé", city: "Bordeaux", zipCode: "33000", latitude: 44.8376, longitude: -0.5813 },
+    { slug: "gaumont-nantes", name: "Gaumont Nantes Mangin", address: "22 Rue Henri Chevalier", city: "Nantes", zipCode: "44000", latitude: 47.2184, longitude: -1.5536 },
+    { slug: "gaumont-caen", name: "Gaumont Caen", address: "5 Pl de la Résistance", city: "Caen", zipCode: "14000", latitude: 49.1829, longitude: -0.3707 },
+    { slug: "gaumont-roissy", name: "Gaumont Roissy", address: "Zone Hôtelière de Roissy", city: "Roissy-en-France", zipCode: "95700", latitude: 49.0028, longitude: 2.5266 },
 ];
 // ── Helpers ───────────────────────────────────────────────
 function parseVersion(raw) {
@@ -262,10 +288,9 @@ class PatheScraper extends base_scraper_js_1.BaseScraper {
     }
     // ── Méthode 2 : Playwright stealth (fallback) ─────────
     async launchBrowser() {
-        this.browser = await playwright_extra_1.chromium.launch({
+        this.browser = await playwright_1.chromium.launch({
             headless: true,
-            args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu",
-                "--disable-blink-features=AutomationControlled"],
+            args: [...chromium_args_js_1.CHROMIUM_ARGS, "--disable-blink-features=AutomationControlled"],
         });
         this.context = await this.browser.newContext({
             userAgent: HEADERS["User-Agent"],

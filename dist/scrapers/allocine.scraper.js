@@ -27,15 +27,16 @@ exports.AllocineScraper = void 0;
 const playwright_1 = require("playwright");
 const client_1 = require("@prisma/client");
 const base_scraper_js_1 = require("./base.scraper.js");
+const chromium_args_js_1 = require("./chromium-args.js");
 // ── Config ────────────────────────────────────────────────
-const DAYS_AHEAD = 30;
-const MAX_CINEMAS = 1000;
-const PAGE_WORKERS = 3; // réduit pour moins stresser Cloudflare
-const MAX_VILLE_PAGES = 400;
+const DAYS_AHEAD = 14; // 2 semaines (nécessaire pour les alertes)
+const MAX_CINEMAS = 1500; // réduit de 2000 (couvre l'essentiel du territoire)
+const PAGE_WORKERS = 2; // réduit de 3 pour moins se faire rate-limiter
+const MAX_VILLE_PAGES = 600; // réduit de 800
 /** Délai de base entre deux jours d'un même cinéma (ms) */
-const DELAY_BETWEEN_DATES_MS = 1_500;
+const DELAY_BETWEEN_DATES_MS = 800; // augmenté de 600 → 800 ms
 /** Délai de base entre deux cinémas (ms) */
-const DELAY_BETWEEN_CINEMAS_MS = 5_000;
+const DELAY_BETWEEN_CINEMAS_MS = 3_000; // augmenté de 2 000 → 3 000 ms
 /** Backoff initial sur un 429 (ms) — multiplie par 2 à chaque retry */
 const BACKOFF_429_BASE_MS = 30_000; // 30 s
 /** Nombre max de retries par requête sur 429 */
@@ -114,12 +115,18 @@ async function extractFromPage(page) {
 // ── Scraper ───────────────────────────────────────────────
 class AllocineScraper extends base_scraper_js_1.BaseScraper {
     name = "allocine";
+    /**
+     * Mode streaming : si défini, chaque cinéma est transmis immédiatement
+     * après scraping et n'est PAS accumulé dans result.cinemas.
+     * Permet d'éviter l'OOM sur 2000+ cinémas.
+     */
+    onCinema;
     /** Nombre de cinémas consécutifs 100% rate-limités (circuit-breaker) */
     consecutiveRateLimited = 0;
     async scrape() {
         const result = this.makeResult();
         this.log("Lancement du navigateur…");
-        const browser = await playwright_1.chromium.launch({ headless: true });
+        const browser = await playwright_1.chromium.launch({ headless: true, args: chromium_args_js_1.CHROMIUM_ARGS });
         const ctx = await browser.newContext({
             userAgent: UA,
             locale: "fr-FR",
@@ -145,7 +152,12 @@ class AllocineScraper extends base_scraper_js_1.BaseScraper {
                 try {
                     const { cinema, allRateLimited } = await this.scrapeTheater(ctx, id);
                     if (cinema) {
-                        result.cinemas.push(cinema);
+                        if (this.onCinema) {
+                            await this.onCinema(cinema); // sauvegarde immédiate → libère la mémoire
+                        }
+                        else {
+                            result.cinemas.push(cinema);
+                        }
                         this.log(`  ✓ ${cinema.nom} (${id}) — ${cinema.films.length} film(s)`);
                     }
                     if (allRateLimited) {

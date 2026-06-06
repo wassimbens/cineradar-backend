@@ -101,7 +101,7 @@ export declare class FilmsService {
      *    → les films très populaires (type blockbuster) remontent même sans beaucoup de séances
      *  - Maximum 2 "classiques" (annee <= currentYear - 3) dans le résultat final
      */
-    getTrendingFilms(limit?: number): Promise<FilmSummary[]>;
+    getTrendingFilms(limit?: number, ville?: string): Promise<FilmSummary[]>;
     /**
      * Films classiques pour la section "À redécouvrir" de la home.
      *
@@ -112,6 +112,20 @@ export declare class FilmsService {
      * → Le Parrain (9.2/10, 1.9M votes, score ≈ 58) avant un film méconnu.
      */
     getClassicFilms(limit?: number): Promise<FilmSummary[]>;
+    /**
+     * Pool pour le "Film du jour" côté home.
+     *
+     * Récupère tous les films ayant des séances dans les 30 prochains jours,
+     * les score avec une formule combinant disponibilité en salle, popularité
+     * TMDB et note critique, puis retourne les 90 meilleurs.
+     *
+     * Score = seances(normalisé) × 0.40
+     *       + popularitéTMDB(normalisé) × 0.35
+     *       + note×log10(votes+10)(normalisé) × 0.25
+     *
+     * 90 films → rotation sur 3 mois sans répétition.
+     */
+    getFilmDuJourPool(poolSize?: number): Promise<FilmSummary[]>;
     /**
      * Tous les films classiques pour la page dédiée.
      * Organisé par réalisateur puis par décennie.

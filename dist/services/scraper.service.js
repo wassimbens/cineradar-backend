@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.scraperService = exports.ScraperService = void 0;
+exports.makeEmptyStats = makeEmptyStats;
 const genres_js_1 = require("../lib/genres.js");
 // ── Normalisation des titres ──────────────────────────────
 // Utilisée pour comparer des titres venant de sources différentes :
@@ -42,6 +43,9 @@ function firstSignificantWord(normalized) {
     return words[0] ?? null;
 }
 const prisma_js_1 = require("../lib/prisma.js");
+function makeEmptyStats() {
+    return { cinemasCreated: 0, cinemasUpdated: 0, filmsCreated: 0, filmsUpdated: 0, seancesCreated: 0, seancesUpdated: 0 };
+}
 // ── Service ───────────────────────────────────────────────
 class ScraperService {
     /**
@@ -133,6 +137,41 @@ class ScraperService {
                 existing = candidates.find(c => normalizeTitle(c.titre) === normScraped) ?? null;
             }
         }
+        // ── Passe 3 : réalisateur + sous-ensemble de mots-clés ──
+        // Gère les titres alternatifs d'un même film :
+        //   "Le Parrain 2" (Coppola) ↔ "Le Parrain – Deuxième Partie" (Coppola)
+        // Nécessite au moins un mot-clé significatif commun ET même réalisateur.
+        if (!existing && scrapedFilm.realisateur) {
+            const sameDirector = await prisma_js_1.prisma.film.findMany({
+                where: {
+                    realisateur: { equals: scrapedFilm.realisateur, mode: "insensitive" },
+                },
+            });
+            if (sameDirector.length > 0) {
+                const normScraped = normalizeTitle(scrapedFilm.titre);
+                const wordsScraped = normScraped
+                    .split(" ")
+                    .filter(w => w.length >= 3 && !STOP_WORDS.has(w));
+                const setScraped = new Set(wordsScraped);
+                for (const candidate of sameDirector) {
+                    const normCandidate = normalizeTitle(candidate.titre);
+                    const wordsCandidate = normCandidate
+                        .split(" ")
+                        .filter(w => w.length >= 3 && !STOP_WORDS.has(w));
+                    const setCandidate = new Set(wordsCandidate);
+                    // Sous-ensemble : tous les mots-clés de A dans B (ou vice versa) → variante de titre
+                    const scrapedSubset = setScraped.size > 0 &&
+                        [...setScraped].every(w => setCandidate.has(w));
+                    const candidateSubset = setCandidate.size > 0 &&
+                        [...setCandidate].every(w => setScraped.has(w));
+                    if (scrapedSubset || candidateSubset) {
+                        console.log(`[scraper] Passe 3 : "${scrapedFilm.titre}" → "${candidate.titre}" (${scrapedFilm.realisateur})`);
+                        existing = candidate;
+                        break;
+                    }
+                }
+            }
+        }
         if (existing) {
             // Ne jamais écraser un poster TMDB (image.tmdb.org) avec une URL CDN de cinéma
             // qui serait protégée et inaccessible hors du navigateur du site d'origine.
@@ -217,14 +256,9 @@ class ScraperService {
         for (const seance of cappedSeances) {
             const salleNom = seance.salleNom ?? "Salle principale";
             const salleId = await this.getSalleId(salleNom, cinemaId);
-            // Upsert séance sur (filmId + salleId + dateHeure)
-            // Évite les doublons si le scraper tourne deux fois dans la journée
+            // Upsert manuel sur (filmId, salleId, dateHeure)
             const existing = await prisma_js_1.prisma.seance.findFirst({
-                where: {
-                    filmId,
-                    salleId,
-                    dateHeure: seance.dateHeure,
-                },
+                where: { filmId, salleId, dateHeure: seance.dateHeure },
             });
             if (existing) {
                 await prisma_js_1.prisma.seance.update({

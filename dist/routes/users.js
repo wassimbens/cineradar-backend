@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
+const auth_js_1 = require("../middleware/auth.js");
 const prisma = new client_1.PrismaClient();
 const usersRoutes = async (fastify) => {
     // ── GET /api/users/search?q= ──────────────────────────
@@ -13,6 +14,7 @@ const usersRoutes = async (fastify) => {
         const q = (req.query.q ?? "").trim();
         if (q.length < 2)
             return reply.send([]);
+        const me = (0, auth_js_1.extractUser)(req);
         const users = await prisma.user.findMany({
             where: {
                 OR: [
@@ -21,6 +23,8 @@ const usersRoutes = async (fastify) => {
                 ],
                 NOT: { pseudo: null },
                 isPublic: true,
+                // Exclure l'utilisateur connecté de ses propres résultats
+                ...(me ? { id: { not: me.userId } } : {}),
             },
             select: {
                 id: true,

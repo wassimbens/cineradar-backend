@@ -1,1 +1,1 @@
-{"version":3,"file":"scrape.job.d.ts","sourceRoot":"","sources":["../../src/jobs/scrape.job.ts"],"names":[],"mappings":"AAsCA;;;GAGG;AACH,wBAAsB,cAAc,IAAI,OAAO,CAAC,IAAI,CAAC,CAgGpD;AA+BD;;;GAGG;AACH,wBAAgB,iBAAiB,IAAI,IAAI,CA+BxC"}
+{"version":3,"file":"scrape.job.d.ts","sourceRoot":"","sources":["../../src/jobs/scrape.job.ts"],"names":[],"mappings":"AAiJA;;;GAGG;AACH,wBAAsB,cAAc,IAAI,OAAO,CAAC,IAAI,CAAC,CAEpD;AAED;;;GAGG;AACH,wBAAsB,aAAa,IAAI,OAAO,CAAC,IAAI,CAAC,CAEnD;AA+BD;;;;GAIG;AACH,wBAAgB,iBAAiB,IAAI,IAAI,CA2CxC"}

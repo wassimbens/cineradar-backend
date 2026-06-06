@@ -4,7 +4,8 @@ export interface JwtPayload {
     email: string;
     pseudo: string | null;
 }
-/** Décore request.user si cookie ou Bearer présent — ne bloque pas si absent */
+/** Décore request.user si cookie ou Bearer présent — ne bloque pas si absent.
+ *  Priorité : Bearer > Cookie (le front gère explicitement son token localStorage). */
 export declare function extractUser(request: FastifyRequest): JwtPayload | null;
 /** Génère un token JWT valable 30 jours */
 export declare function signToken(payload: JwtPayload): string;

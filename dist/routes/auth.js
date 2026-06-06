@@ -54,6 +54,18 @@ const authRoutes = async (fastify) => {
             return !authSensitive.some((r) => req.routeOptions?.url?.endsWith(r));
         },
     });
+    // ── GET /api/auth/check-pseudo ───────────────────────
+    fastify.get("/auth/check-pseudo", async (req, reply) => {
+        const { pseudo } = req.query;
+        if (!pseudo || !PSEUDO_REGEX.test(pseudo)) {
+            return reply.send({ available: false, reason: "format" });
+        }
+        const existing = await prisma.user.findUnique({
+            where: { pseudo },
+            select: { id: true },
+        });
+        return reply.send({ available: !existing });
+    });
     // ── POST /api/auth/register ───────────────────────────
     fastify.post("/auth/register", async (req, reply) => {
         const { email, pseudo, password, nom } = req.body ?? {};
@@ -107,7 +119,7 @@ const authRoutes = async (fastify) => {
             ok: true,
             token: jwt,
             emailVerified: false,
-            user: { id: user.id, email: user.email, pseudo: user.pseudo, nom: user.nom },
+            user: { id: user.id, email: user.email, pseudo: user.pseudo, nom: user.nom, isPremium: user.isPremium, premiumUntil: user.premiumUntil },
         });
     });
     // ── POST /api/auth/login ──────────────────────────────
@@ -133,7 +145,7 @@ const authRoutes = async (fastify) => {
             ok: true,
             token,
             emailVerified: user.emailVerified,
-            user: { id: user.id, email: user.email, pseudo: user.pseudo, nom: user.nom },
+            user: { id: user.id, email: user.email, pseudo: user.pseudo, nom: user.nom, isPremium: user.isPremium, premiumUntil: user.premiumUntil },
         });
     });
     // ── POST /api/auth/logout ─────────────────────────────
@@ -151,7 +163,7 @@ const authRoutes = async (fastify) => {
             select: {
                 id: true, email: true, pseudo: true, nom: true,
                 avatar: true, bio: true, ville: true, isPublic: true,
-                emailVerified: true,
+                emailVerified: true, isPremium: true, premiumUntil: true,
             },
         });
         if (!user)
@@ -332,6 +344,120 @@ const authRoutes = async (fastify) => {
         const token = (0, auth_js_1.signToken)({ userId: user.id, email: user.email, pseudo: user.pseudo });
         reply.setCookie(COOKIE_NAME, token, COOKIE_OPTS);
         return reply.send({ ok: true, token, pseudo: user.pseudo });
+    });
+    // ── PATCH /api/auth/change-password ──────────────────
+    // Requiert JWT + mot de passe actuel + nouveau mot de passe
+    fastify.patch("/auth/change-password", async (req, reply) => {
+        const payload = (0, auth_js_1.extractUser)(req);
+        if (!payload)
+            return reply.status(401).send({ error: "Non authentifié" });
+        const { currentPassword, newPassword } = req.body ?? {};
+        if (!currentPassword || !newPassword) {
+            return reply.status(400).send({ error: "currentPassword et newPassword requis" });
+        }
+        if (newPassword.length < 6) {
+            return reply.status(400).send({ error: "Le nouveau mot de passe doit faire au moins 6 caractères" });
+        }
+        if (currentPassword === newPassword) {
+            return reply.status(400).send({ error: "Le nouveau mot de passe doit être différent de l'ancien" });
+        }
+        const user = await prisma.user.findUnique({
+            where: { id: payload.userId },
+            include: { password: true },
+        });
+        if (!user)
+            return reply.status(404).send({ error: "Utilisateur introuvable" });
+        if (!user.password) {
+            return reply.status(400).send({ error: "Aucun mot de passe défini sur ce compte" });
+        }
+        const valid = await bcryptjs_1.default.compare(currentPassword, user.password.hash);
+        if (!valid)
+            return reply.status(401).send({ error: "Mot de passe actuel incorrect" });
+        const hash = await bcryptjs_1.default.hash(newPassword, 10);
+        await prisma.password.update({ where: { userId: user.id }, data: { hash } });
+        return reply.send({ ok: true, message: "Mot de passe mis à jour" });
+    });
+    // ── PATCH /api/auth/change-email ──────────────────────
+    // Requiert JWT + nouveau email + mot de passe pour confirmation
+    fastify.patch("/auth/change-email", async (req, reply) => {
+        const payload = (0, auth_js_1.extractUser)(req);
+        if (!payload)
+            return reply.status(401).send({ error: "Non authentifié" });
+        const { newEmail, password } = req.body ?? {};
+        if (!newEmail || !password) {
+            return reply.status(400).send({ error: "newEmail et password requis" });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newEmail)) {
+            return reply.status(400).send({ error: "Adresse email invalide" });
+        }
+        // Vérifier que le nouvel email n'est pas déjà pris
+        const taken = await prisma.user.findUnique({ where: { email: newEmail } });
+        if (taken)
+            return reply.status(409).send({ error: "Adresse email déjà utilisée" });
+        const user = await prisma.user.findUnique({
+            where: { id: payload.userId },
+            include: { password: true },
+        });
+        if (!user)
+            return reply.status(404).send({ error: "Utilisateur introuvable" });
+        if (!user.password) {
+            return reply.status(400).send({ error: "Aucun mot de passe défini sur ce compte" });
+        }
+        const valid = await bcryptjs_1.default.compare(password, user.password.hash);
+        if (!valid)
+            return reply.status(401).send({ error: "Mot de passe incorrect" });
+        const updated = await prisma.user.update({
+            where: { id: user.id },
+            data: { email: newEmail, emailVerified: false },
+        });
+        // Envoyer un email de confirmation au nouvel email
+        const token = generateToken();
+        await prisma.emailVerifToken.create({
+            data: {
+                token,
+                userId: updated.id,
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            },
+        });
+        const verifyUrl = `${SITE_URL}/auth/verify-email?token=${token}`;
+        const { subject, html } = (0, email_js_1.emailConfirmationInscription)({ nom: updated.nom, verifyUrl });
+        (0, email_js_1.sendEmail)({ to: newEmail, subject, html }).catch(() => { });
+        // Nouveau JWT avec le nouvel email
+        const newToken = (0, auth_js_1.signToken)({ userId: updated.id, email: updated.email, pseudo: updated.pseudo });
+        reply.setCookie(COOKIE_NAME, newToken, COOKIE_OPTS);
+        return reply.send({
+            ok: true,
+            token: newToken,
+            email: updated.email,
+            message: "Adresse email mise à jour. Un email de confirmation a été envoyé.",
+        });
+    });
+    // ── DELETE /api/auth/delete-account ───────────────────
+    // Supprime définitivement le compte (requiert JWT + mot de passe)
+    fastify.delete("/auth/delete-account", async (req, reply) => {
+        const payload = (0, auth_js_1.extractUser)(req);
+        if (!payload)
+            return reply.status(401).send({ error: "Non authentifié" });
+        const { password } = req.body ?? {};
+        if (!password)
+            return reply.status(400).send({ error: "password requis" });
+        const user = await prisma.user.findUnique({
+            where: { id: payload.userId },
+            include: { password: true },
+        });
+        if (!user)
+            return reply.status(404).send({ error: "Utilisateur introuvable" });
+        // Si le compte a un mot de passe, le vérifier
+        if (user.password) {
+            const valid = await bcryptjs_1.default.compare(password, user.password.hash);
+            if (!valid)
+                return reply.status(401).send({ error: "Mot de passe incorrect" });
+        }
+        // Supprimer le compte (cascade via Prisma)
+        await prisma.user.delete({ where: { id: user.id } });
+        reply.clearCookie(COOKIE_NAME, { path: "/" });
+        return reply.send({ ok: true, message: "Compte supprimé définitivement" });
     });
 };
 exports.default = authRoutes;

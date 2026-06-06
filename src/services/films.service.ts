@@ -463,6 +463,78 @@ export class FilmsService {
   }
 
   /**
+   * Pool pour le "Film du jour" côté home.
+   *
+   * Récupère tous les films ayant des séances dans les 30 prochains jours,
+   * les score avec une formule combinant disponibilité en salle, popularité
+   * TMDB et note critique, puis retourne les 90 meilleurs.
+   *
+   * Score = seances(normalisé) × 0.40
+   *       + popularitéTMDB(normalisé) × 0.35
+   *       + note×log10(votes+10)(normalisé) × 0.25
+   *
+   * 90 films → rotation sur 3 mois sans répétition.
+   */
+  async getFilmDuJourPool(poolSize = 90): Promise<FilmSummary[]> {
+    const now   = new Date();
+    const in30  = new Date(now);
+    in30.setDate(in30.getDate() + 30);
+
+    const rows = await prisma.film.findMany({
+      where: {
+        affiche: { not: null },
+        seances: { some: { dateHeure: { gte: now, lte: in30 } } },
+      },
+      include: {
+        _count: { select: { seances: { where: { dateHeure: { gte: now, lte: in30 } } } } },
+      },
+    });
+
+    const withSeances = rows.filter((r) => r._count.seances > 0);
+    if (!withSeances.length) return [];
+
+    // Valeurs max pour normalisation
+    const maxSeances  = Math.max(...withSeances.map((r) => r._count.seances), 1);
+    const maxPop      = Math.max(...withSeances.map((r) => r.tmdbPopularite ?? 0), 1);
+    const maxCritique = Math.max(
+      ...withSeances.map((r) => {
+        const note  = r.imdbNote ?? r.tmdbNote ?? 0;
+        const votes = r.imdbVotes ?? 0;
+        return note * Math.log10(votes + 10);
+      }),
+      1,
+    );
+
+    const scored = withSeances.map((r) => {
+      const note  = r.imdbNote ?? r.tmdbNote ?? 0;
+      const votes = r.imdbVotes ?? 0;
+      const sN = r._count.seances / maxSeances;
+      const pN = (r.tmdbPopularite ?? 0) / maxPop;
+      const cN = (note * Math.log10(votes + 10)) / maxCritique;
+      return { r, score: sN * 0.40 + pN * 0.35 + cN * 0.25, seancesCount: r._count.seances };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    return scored.slice(0, poolSize).map(({ r, seancesCount }) => ({
+      id:            r.id,
+      titre:         r.titre,
+      titreOriginal: r.titreOriginal,
+      affiche:       r.affiche,
+      synopsis:      r.synopsis,
+      duree:         r.duree,
+      genres:        r.genres,
+      realisateur:   r.realisateur,
+      acteurs:       r.acteurs ?? [],
+      annee:         r.annee,
+      tmdbNote:      r.tmdbNote  ?? null,
+      imdbNote:      r.imdbNote  ?? null,
+      imdbVotes:     r.imdbVotes ?? null,
+      seancesCount,
+    }));
+  }
+
+  /**
    * Tous les films classiques pour la page dédiée.
    * Organisé par réalisateur puis par décennie.
    */

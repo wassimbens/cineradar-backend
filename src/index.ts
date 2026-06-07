@@ -23,6 +23,7 @@ import stripeRoutes from "./routes/stripe.js";
 import notifRoutes from "./routes/notifications.js";
 import listesRoutes from "./routes/listes.js";
 import messagesRoutes from "./routes/messages.js";
+import adminDashboardRoutes from "./routes/admin-dashboard.js";
 
 const PORT = Number(process.env["PORT"] ?? 3001);
 const HOST = process.env["NODE_ENV"] === "production" ? "0.0.0.0" : "127.0.0.1";
@@ -139,6 +140,7 @@ async function start() {
   await app.register(notifRoutes,   { prefix: "/api" });
   await app.register(listesRoutes,  { prefix: "/api" });
   await app.register(messagesRoutes, { prefix: "/api" });
+  await app.register(adminDashboardRoutes);
 
   // Connexions externes
   await connectRedis();
